@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center; /* 水平居中 */
+    margin: 0;  去掉默认的 margin 
+    margin: 20px;
+}
+.container {
+    display: flex;
+    flex-direction: column; /* 让 .group 元素纵向排列 */
+    align-items: center;    /* 让 .group 元素在容器内水平居中 */
+    gap: 20px;              /* 组间距，可根据需要调整 */
+}
+.group {
+    max-width: 800px; /* 设定一个合适的最大宽度 */
+    width: 100%;
+}
+.title-row {
+    display: flex;
+    align-items: center; /* 副标题与标题垂直居中对齐 */
+}
+.group-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+.group-subtitle {
+    font-size: 18px;
+    color: #666;
+    margin-left: 20px; /* 副标题与标题的距离 */
+}
+.image-row {
+    display: flex;
+    justify-content: center; /* 让图片在 .group 内水平居中 */
+    gap: 10px; /* 图片间距 */
+}
+.image-row img {
+    width: 12%; /* 或设置为你想要的合适宽度 */
+  height: auto; /* 自动调整高度，保持比例 */
+  max-width: 100%; /* 确保图片在小屏幕上不会超过容器宽度 */
+}
+.text {
+    margin-left: 10px;
+    font-size: 16px;
+}
+.image-after-text {
+    margin-left: 20px; /* 给第六张图片添加左边距 */
+}
+
+h5 {
+  text-align: center; /* 水平居中对齐 */
+}
+
+.image-checkbox {
+    display: inline-block;
+/*    margin: 5px;*/
+    cursor: pointer;
+    transition: filter 0.3s;
+    width: 15%; /* 每行四个图片，留有间距 */
+    margin-bottom: 20px; /* 行间距 */
+    margin-right: 2%; /* 每个图片右边的间距 */
+}
+
+.image-checkbox.checked {
+    filter: none;
+}
+
+.image-checkbox img {
+  display: inline-block;
+  margin: 0 5px; /* 图片间距，可选 */
+  width: 100%;
+  height: auto;
+  opacity:0.5;
+}
+
+#demoForm {
+  text-align: center; /* 图片居中 */
+}
