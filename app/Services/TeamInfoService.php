@@ -182,11 +182,12 @@ class TeamInfoService
         }])
         ->where(function ($query) use ($uid, $type, $accountId) {
             if ($type && $accountId) {
-                $query->where(['open' => 2, 'auto' => 1, 'status' => 1]);
+                $query->where(['open' => 2, 'auto' => 1]);
             } else {
-                $query->where(['uid' => $uid, 'status' => 1]);
+                $query->where(['uid' => $uid]);
             }
         })
+        ->where('status', 1)
         ->whereYear('created_at', Carbon::now()->year)
         ->whereMonth('created_at', Carbon::now()->month)
         ->orderBy('id')
@@ -203,8 +204,7 @@ class TeamInfoService
                 Cache::put($cacheKey, json_encode($data));
             }
         }
-// return $data;
-// $makeArr = 1;
+
         if ($type && $accountId) {
             if ($makeArr) {
                 $teamsRes = self::makeTeams($data);
@@ -216,26 +216,6 @@ class TeamInfoService
             $teamsRes = self::makeTeams($data);
         }
 
-// return count($teamsRes);
-// return $teamsRes;
-// return 1111;
-        
-
-
-        if ($type && $accountId) {
-            if ($makeArr) {
-                $teamsRes = self::sortTeams($teamsRes);
-                Cache::put('sortTeams', $teamsRes);
-            } else {
-                $teamsRes = Cache::get('sortTeams');
-            }
-        } else {
-            $teamsRes = self::sortTeams($teamsRes);
-        }
-
-// return $teamsRes;
-// return count($teamsRes);
-// return 3333;
         $userBox = [];
         if ($type && $accountId) {
             $userBox = Account::where('id', $accountId)->value('roles');
@@ -243,8 +223,7 @@ class TeamInfoService
                 $userBox = explode(',', $userBox);
             }
         }
-// return 66666;
-// return $teamsRes;
+
         $successNum = 20;
         $failNum = 0;
 
@@ -282,9 +261,6 @@ class TeamInfoService
 
             // 借人数量判断
             $is_ok = self::checkRoleSumNum($roleStatus);
-            if ($roleStatus[0]['sn'] == 'ET201' && $roleStatus[1]['sn'] == 'ET412' && $roleStatus[2]['sn'] == 'ET501') {
-                // return $is_ok;
-            }
             if (!$is_ok) {
                 unset($teamsRes[$key]);
                 $failNum++;
@@ -304,12 +280,10 @@ class TeamInfoService
             }
             
         }
-// return 5555;
-// return $a;
+
         if (count($teamsRes) > $successNum) {
             $teamsRes = array_slice($teamsRes, 0, $successNum);
         }
-// return $teamsRes;
 
         $res = [];
 
@@ -499,7 +473,7 @@ class TeamInfoService
                     }
                 }
                 $sameNum = count(array_intersect($aRoles, $bRoles));
-                if ( (10 - $statusNum - $sameNum) < 8) {
+                if ($statusNum + $sameNum > 2) {
                     return false;
                 }
             }
@@ -589,7 +563,7 @@ class TeamInfoService
                 }
             }
         }
-        return $teamsRes;
+        return self::sortTeams($teamsRes);
     }
 
     private static function sortTeams($data)
