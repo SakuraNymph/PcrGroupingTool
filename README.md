@@ -1,2 +1,3 @@
-## 本项目旨在为部分公会战玩家面对多个作者作业时，方便对比不同作者作者的角色练度而编写的。原本是想为小白用户做一个本地版的项目，实际操作后发现还是有点复杂（门槛）。需要安装git phpstudy composer 以后会做一个线上项目给大家使用  或者出个使用视频
+![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySql->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
+## 演示地址 http://pcr.happy0227.asia/
 
