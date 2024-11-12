@@ -7,7 +7,6 @@
 </style>
 
 
-
 <div id="content">
   <div class="layui-form" lay-filter="layuiadmin-app-form-list" id="layuiadmin-app-form-list">
       <div class="layui-row layui-col-space15">
@@ -56,7 +55,12 @@
     getBossList();
 
     function getTeamGroups(bossMap = {}) {
-      $.get("{{ url('user/account/get_team_groups') }}", { bossMap: bossMap, id: id }, function (res) {
+      if (id == '0') {
+        url = "{{ url('get_team_groups') }}";
+      } else {
+        url = "{{ url('user/account/get_team_groups') }}";
+      }
+      $.get(url, { bossMap: bossMap, id: id }, function (res) {
         var obj = JSON.parse(res);
         if (obj.status == 1) {
           $('#show').html(''); // 清空容器
@@ -66,11 +70,14 @@
             $('#show').html(html); // 添加生成的 HTML
           } else {
             for (let key in data) {
+              let color = '';
+              if (key % 2 == 0) { color = 'red'; }
+              if (key % 2 == 1) { color = 'blue'; }
               let html = '';
               html += '<fieldset class="layui-elem-field"><div class="layui-field-box"><div class="container">';
               for (let k in data[key]) {
                 html += '<div class="group"><div class="title-row">';
-                html += '<div class="group-title">E' + data[key][k].boss + '</div>';
+                html += '<div class="group-title" style="color:' + color + '">E' + data[key][k].boss + '</div>';
                 html += '<div class="group-subtitle">预估伤害：' + data[key][k].score + '</div></div>';
                 html += '<div class="image-row">';
 

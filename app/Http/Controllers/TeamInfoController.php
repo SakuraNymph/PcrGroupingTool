@@ -275,7 +275,7 @@ class TeamInfoController extends Controller
 
     public function resTeam()
     {
-        return view('team.teams');
+        return view('user.account.team', ['id' => 0]);
     }
 
     public function deleteAll()

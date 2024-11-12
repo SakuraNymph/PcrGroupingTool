@@ -228,7 +228,7 @@ class TeamInfoService
         $failNum = 0;
 
         $bossMapCount = $bossMap ? count($bossMap) : 0;
-
+// return 666;
         foreach ($teamsRes as $key => $teams) {
             $teamsBoss = [];
             $roleStatus = [];
@@ -278,9 +278,10 @@ class TeamInfoService
             if (($key - $failNum) >= $successNum) { // 实际比successNum多一个
                 break;
             }
+            // $a[] = [$key, $failNum];
             
         }
-
+// return $a;
         if (count($teamsRes) > $successNum) {
             $teamsRes = array_slice($teamsRes, 0, $successNum);
         }
@@ -537,6 +538,7 @@ class TeamInfoService
     private static function makeTeams($data)
     {
         $n = count($data);
+        $teamsRes = [];
         for ($i = 0; $i < $n - 2; $i++) {
             for ($j = $i + 1; $j < $n - 1; $j++) {
                 $is_ok = self::checkSameRoleNum($data[$i], $data[$j]);
@@ -553,7 +555,6 @@ class TeamInfoService
                         continue;
                     }
                     if (count(array_count_values(array_merge(array_column($data[$i]['team_roles'], 'role_id'), array_column($data[$j]['team_roles'], 'role_id'), array_column($data[$k]['team_roles'], 'role_id')))) >= 12) {
-                        // $teamsRes[] = [$data[$i], $data[$j], $data[$k]];
                         $teamsRes[] = [
                             ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score']],
                             ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score']],
