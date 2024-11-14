@@ -83,7 +83,7 @@ layui.config({
       },
       cols: [[
           {title:'序号', type:'numbers',  width: 80}
-         ,{field:'nickname', title:'昵称', align: 'center', minWidth:120}
+         ,{field:'name', title:'昵称', align: 'center', minWidth:120}
          ,{field:'role_id', title:'缩略图', align: 'center', minWidth: 120, templet: function(data) {
             return '<img style="height:50px" src="/images/'+ data.role_id +'.webp" title='+ data.role_id +'  class="layui-upload-img">';
           }}

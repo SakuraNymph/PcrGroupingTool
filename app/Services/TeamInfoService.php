@@ -196,7 +196,7 @@ class TeamInfoService
         $data = $data ? $data->toArray() : [];
 
         $makeArr = false;
-// $makeArr = 1;
+
         if ($cacheKey) {
             $oldDataJson = Cache::get($cacheKey);
             if (json_encode($data) != $oldDataJson) {
@@ -226,9 +226,8 @@ class TeamInfoService
 
         $successNum = 20;
         $failNum = 0;
-
         $bossMapCount = $bossMap ? count($bossMap) : 0;
-// return 666;
+
         foreach ($teamsRes as $key => $teams) {
             $teamsBoss = [];
             $roleStatus = [];
@@ -267,6 +266,14 @@ class TeamInfoService
                 continue;
             }
 
+            // 出战角色数量判断
+            $is_ok = self::countRolesNum($roleStatus);
+            if (!$is_ok) {
+                unset($teamsRes[$key]);
+                $failNum++;
+                continue;
+            }
+
             if ($bossMap) {
                 if (count(array_intersect($bossMap, $teamsBoss)) < $bossMapCount) {
                     unset($teamsRes[$key]);
@@ -278,10 +285,8 @@ class TeamInfoService
             if (($key - $failNum) >= $successNum) { // 实际比successNum多一个
                 break;
             }
-            // $a[] = [$key, $failNum];
-            
         }
-// return $a;
+
         if (count($teamsRes) > $successNum) {
             $teamsRes = array_slice($teamsRes, 0, $successNum);
         }
@@ -296,7 +301,6 @@ class TeamInfoService
             $res[] = $temp;
         }
 
-// return $res;
         foreach ($res as $key => &$teams) {
             foreach ($teams as $k => $team) {
                 $teams[$k]['link'] = json_decode($team['link'], 1);
@@ -306,148 +310,7 @@ class TeamInfoService
                     }
                 }
             }
-            $status_times = self::sumStatusNum($teams);
-            if ($status_times == 3) {
-                foreach ($teams as $k => $teamInfo) {
-                    foreach ($teamInfo['team_roles'] as $kk => $role) {
-                        if ($role['status'] == 0) {
-                            $teams[$k]['borrow'] = $role['role_id'];
-                            break;
-                        }
-                    }
-                }
-            }
-            if ($status_times == 2) {
-                $f_key = 0;
-                foreach ($teams as $k => $teamInfo) {
-                    foreach ($teamInfo['team_roles'] as $kk => $role) {
-                        if ($role['status'] == 0) {
-                            $teams[$k]['borrow'] = $role['role_id'];
-                            break;
-                        }
-                    }
-                }
-                $tmp = [];
-                foreach ($teams as $k => $teamInfo) {
-                    if ($teamInfo['borrow']) {
-                        $tmp[] = $k;
-                    } else {
-                        $f_key = $k;
-                    }
-                }
-                $k_role = array_merge(array_column($teams[$tmp[0]]['team_roles'], 'role_id'), array_column($teams[$tmp[1]]['team_roles'], 'role_id'));
-                if (in_array($teams[$tmp[0]]['borrow'], $k_role)) {
-                    unset($k_role[array_search($teams[$tmp[0]]['borrow'], $k_role)]);
-                }
-                if (in_array($teams[$tmp[1]]['borrow'], $k_role)) {
-                    unset($k_role[array_search($teams[$tmp[1]]['borrow'], $k_role)]);
-                }
-                if (array_intersect(array_column($teams[$f_key]['team_roles'], 'role_id'), $k_role)) {
-                    $teams[$f_key]['borrow'] = current(array_intersect(array_column($teams[$f_key]['team_roles'], 'role_id'), $k_role));
-                } else {
-                    $teams[$f_key]['borrow'] = 0;
-                }
-            }
-            if ($status_times == 1) {
-                $b_key = 0;
-                // 先找到缺角色的那个阵容并标记出来
-                foreach ($teams as $k => $teamInfo) {
-                    foreach ($teamInfo['team_roles'] as $kk => $role) {
-                        if ($role['status'] == 0) {
-                            $teams[$k]['borrow'] = $role['role_id'];
-                            $b_key = $k;
-                            break;
-                        }
-                    }
-                }
-                // 再统计剩下两个队伍
-                $ts = 0;
-                foreach ($teams as $k => $teamInfo) {
-                    if ($k != $b_key) {
-                        $k_role = array_values(array_intersect(array_column($teams[$b_key]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id')));
-                        if (array_search($teams[$b_key]['borrow'], $k_role)) {
-                            unset($k_role[array_search($teams[$b_key]['borrow'], $k_role)]);
-                        }
-                        if ($k_role) {  // 该阵容和缺角色的阵容有共用角色
-                            $teams[$k]['borrow'] = current($k_role);
-                            $ts++;
-                        }
-                    }
-                }
-                // 另外两个不缺角色的阵容都不和缺角色的阵容有公共角色
-                if ($ts == 0) {
-                    $key_map = [];
-                    for ($i=0; $i < 3; $i++) { 
-                        if ($i != $b_key) {
-                            $key_map[] = $i;
-                        }
-                    }
-                    $k_role = array_intersect(array_column($teams[$key_map[0]]['team_roles'], 'role_id'), array_column($teams[$key_map[1]]['team_roles'], 'role_id'));
-                    $teams[$key_map[0]]['borrow'] = current($k_role);
-                    $teams[$key_map[1]]['borrow'] = next($k_role);
-                }
-                // 其中一个阵容与缺角色的阵容拥有公共角色
-                if ($ts == 1) {
-                    foreach ($teams as $k => $teamInfo) {
-                        if ($teamInfo['borrow'] == 0) {
-                            $a_key = 3 - $k - $b_key;
-                            $k_role = array_values(array_intersect(array_column($teams[$a_key]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id')));
-                            if (array_search($teams[$a_key]['borrow'], $k_role)) {
-                                unset($k_role[array_search($teams[$a_key]['borrow'], $k_role)]);
-                            }
-                            $teams[$k]['borrow'] = current($k_role) ?? 0;
-                        }
-                    }
-                }
-            }
-            if ($status_times == 0) {
-                $sum_arr = self::sumRoleNum($teams, 2);
-                // 三组都没有共用角色的情况
-                if ($sum_arr['sum'] == 0) {
-                    $teams[0]['borrow'] = $teams[1]['borrow'] = $teams[2]['borrow'] = 0;
-                }
-                // 其中两组共用一个角色
-                if ($sum_arr['sum'] == 1) {
-                    for ($i=0; $i < 2; $i++) { 
-                        for ($j=$i+1; $j < 3; $j++) { 
-                            $k_role = current(array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id')));
-                            if ($k_role) {
-                                if ($teams[$i]['borrow'] == 0 && $teams[$j]['borrow'] == 0) {
-                                    $teams[$i]['borrow'] = $k_role;
-                                    continue;
-                                }
-                                if ($teams[$i]['borrow'] && $teams[$i]['borrow'] != $k_role) {
-                                    $teams[$j]['borrow'] = $k_role;
-                                    continue;
-                                }
-                                if ($teams[$j]['borrow'] && $teams[$j]['borrow'] != $k_role) {
-                                    $teams[$i]['borrow'] = $k_role;
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                }
-                // 其中两组共用两个角色
-                if ($sum_arr['sum'] == 2) {
-                    $same_role_arr = array_intersect(array_column($teams[$sum_arr['i']]['team_roles'], 'role_id'), array_column($teams[$sum_arr['j']]['team_roles'], 'role_id'));
-                    $teams[$sum_arr['i']]['borrow'] = current($same_role_arr);
-                    $teams[$sum_arr['j']]['borrow'] = next($same_role_arr);
-                    $k = 3 - $sum_arr['i'] - $sum_arr['j'];
-                    $k_i = count(array_intersect(array_column($teams[$k]['team_roles'], 'role_id'), array_column($teams[$sum_arr['i']]['team_roles'], 'role_id')));
-                    $k_j = count(array_intersect(array_column($teams[$k]['team_roles'], 'role_id'), array_column($teams[$sum_arr['j']]['team_roles'], 'role_id')));
-                    // 和另外两队共用0个角色
-                    if ($k_i == 0 && $k_j == 0) {
-                        $teams[$k]['borrow'] = 0;
-                    }
-                    if ($k_i == 1) {
-                        $teams[$k]['borrow'] = current(array_intersect(array_column($teams[$k]['team_roles'], 'role_id'), array_column($teams[$sum_arr['i']]['team_roles'], 'role_id')));
-                    }
-                    if ($k_j == 1) {
-                        $teams[$k]['borrow'] = current(array_intersect(array_column($teams[$k]['team_roles'], 'role_id'), array_column($teams[$sum_arr['j']]['team_roles'], 'role_id')));
-                    }
-                }
-            }
+            self::borrowRoles($teams);
         }
         return $res;
     }
@@ -482,6 +345,19 @@ class TeamInfoService
         return true;
     }
 
+    private static function countRolesNum($teams = [])
+    {
+        $map = [];
+        foreach ($teams as $key => $teamInfo) {
+            foreach ($teamInfo['team_roles'] as $k => $role) {
+                if ($role['status'] && !in_array($role['role_id'], $map)) {
+                    $map[] = $role['role_id'];
+                }
+            }
+        }
+        return count($map) >= 12 ? true : false;
+    }
+
     private static function sumStatusNum($teams = [])
     {
         $sum = 0;
@@ -493,6 +369,60 @@ class TeamInfoService
             }
         }
         return $sum;
+    }
+
+    private static function borrowRoles(&$teams = [])
+    {
+       foreach ($teams as $key => $teamInfo) {
+            foreach ($teamInfo['team_roles'] as $k => $role) {
+                if ($role['status'] == 0) {
+                    $teams[$key]['borrow'] = $role['role_id'];
+                    break;
+                }
+            }
+        }
+        for ($i=0; $i < 2; $i++) { 
+            for ($j=$i+1; $j < 3; $j++) { 
+                if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
+                    continue;
+                }
+                $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
+                if (empty($sameRoles)) {
+                    continue;
+                }
+                if ($teams[$i]['borrow']) {
+                    if (in_array($teams[$i]['borrow'], $sameRoles)) {
+                        unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
+                        if (empty($sameRoles)) {
+                            continue;
+                        } else {
+                            $teams[$j]['borrow'] = current($sameRoles);
+                            continue;
+                        }
+                    } else {
+                        $teams[$j]['borrow'] = current($sameRoles);
+                        continue;
+                    }
+                }
+                if ($teams[$j]['borrow']) {
+                    if (in_array($teams[$j]['borrow'], $sameRoles)) {
+                        unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
+                        if (empty($sameRoles)) {
+                            continue;
+                        } else {
+                            $teams[$i]['borrow'] = current($sameRoles);
+                            continue;
+                        }
+                    } else {
+                        $teams[$i]['borrow'] = current($sameRoles);
+                        continue;
+                    }
+                }
+                $teams[$i]['borrow'] = current($sameRoles);
+                $teams[$j]['borrow'] = next($sameRoles);
+            }
+        }
+        return $teams; 
     }
 
     private static function sumRoleNum($teams = [], $num = 2)
@@ -554,13 +484,11 @@ class TeamInfoService
                         if (!$is_ok) {
                         continue;
                     }
-                    if (count(array_count_values(array_merge(array_column($data[$i]['team_roles'], 'role_id'), array_column($data[$j]['team_roles'], 'role_id'), array_column($data[$k]['team_roles'], 'role_id')))) >= 12) {
-                        $teamsRes[] = [
-                            ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score']],
-                            ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score']],
-                            ['dataKey' => $k, 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score']]
-                        ];
-                    }
+                    $teamsRes[] = [
+                        ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score']],
+                        ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score']],
+                        ['dataKey' => $k, 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score']]
+                    ];
                 }
             }
         }
@@ -616,4 +544,6 @@ class TeamInfoService
         }
         return $data;
     }
+
+    
 }

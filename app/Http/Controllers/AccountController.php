@@ -141,8 +141,7 @@ class AccountController extends Controller
                     'fox_switch' => $fox,
                     'fox_level'  => $fox ? 0 : (int)$params['fox_level'],
                     'status'     => 1,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
+                    'created_at' => Carbon::now()
                 ];
                 $ok = DB::table('accounts')->insertGetId($insertAccount);
                 if (!$ok) {

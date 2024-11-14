@@ -48,7 +48,7 @@ img {
                     </legend>
                     <div class="layui-field-box">
                       @foreach($v['role_ids'] as $role_id)
-                        <img src="./images/{{$role_id}}.webp">
+                        <img src="{{ asset('images') }}/{{$role_id}}.webp">
                       @endforeach
                     </div>
                   </fieldset>
