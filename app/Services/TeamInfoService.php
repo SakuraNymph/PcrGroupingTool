@@ -166,13 +166,17 @@ class TeamInfoService
         return true;
     }
 
+    /**
+     * [getTeamGroups 获取推荐分刀作业]
+     * @param  [type]  $uid       [用户ID]
+     * @param  array   $bossMap   [bossID数组]
+     * @param  integer $type      [类型0手动分刀1自动分刀]
+     * @param  integer $accountId [账号ID]
+     * @return [type]             [结果数据]
+     */
     public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0)
     {
-        if ($type && $accountId) {
-            $cacheKey = 'autoTeams';
-        } else {
-            $cacheKey = '';
-        }
+        $cacheKey = ($type && $accountId) ? 'autoTeams' : '';
 
         $data = Team::with(['teamRoles' => function ($query) {
             $query->join('roles', function($join) {
@@ -315,6 +319,11 @@ class TeamInfoService
         return $res;
     }
 
+    /**
+     * [checkRoleSumNum 任意两队之间借用角色和共用角色之和不能超过2]
+     * @param  array  $teams [原数据]
+     * @return [type]        [不超过2返回true 超过2返回false]
+     */
     private static function checkRoleSumNum($teams = [])
     {
         for ($i=0; $i < 2; $i++) { 
@@ -345,6 +354,11 @@ class TeamInfoService
         return true;
     }
 
+    /**
+     * [countRolesNum 三队作业至少要保证12个自己的角色]
+     * @param  array  $teams [原数据]
+     * @return [bool]        [大于等于12个角色返回true 小于12个角色返回false]
+     */
     private static function countRolesNum($teams = [])
     {
         $map = [];
@@ -358,19 +372,11 @@ class TeamInfoService
         return count($map) >= 12 ? true : false;
     }
 
-    private static function sumStatusNum($teams = [])
-    {
-        $sum = 0;
-        foreach ($teams as $key => $teamInfo) {
-            foreach ($teamInfo['team_roles'] as $k => $role) {
-                if ($role['status'] == 0) {
-                    $sum++;
-                }
-            }
-        }
-        return $sum;
-    }
-
+    /**
+     * [borrowRoles 确定推荐借用角色]
+     * @param  array  &$teams [分组后数据]
+     * @return [type]         [补全借用角色的数据]
+     */
     private static function borrowRoles(&$teams = [])
     {
        foreach ($teams as $key => $teamInfo) {
@@ -425,23 +431,12 @@ class TeamInfoService
         return $teams; 
     }
 
-    private static function sumRoleNum($teams = [], $num = 2)
-    {
-        $sum = 0;
-        for ($i=0; $i < 2; $i++) { 
-            for ($j=$i+1; $j < 3; $j++) { 
-                $same_num = count(array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id')));
-                if ($same_num > $sum) {
-                    $sum = $same_num;
-                }
-                if ($same_num == $num) {
-                    break 2;
-                }
-            }
-        }
-        return ['sum' => $sum, 'i' => $i, 'j' => $j];
-    }
-
+    /**
+     * [checkSameRoleNum 任意两组阵容不能有三个相同角色]
+     * @param  [type] $teamA [作业A阵容]
+     * @param  [type] $teamB [作业B阵容]
+     * @return [bool]        [不超过三个角色返回true 超过三个角色返回false]
+     */
     private static function checkSameRoleNum($teamA, $teamB)
     {
         $limitNum = 3;
@@ -465,6 +460,11 @@ class TeamInfoService
         return $sameRoleNum >= $limitNum ? false : true;
     }
 
+    /**
+     * [makeTeams 每三个阵容编成一组]
+     * @param  [type] $data [原数据]
+     * @return [type]       [结果数据]
+     */
     private static function makeTeams($data)
     {
         $n = count($data);
@@ -495,6 +495,11 @@ class TeamInfoService
         return self::sortTeams($teamsRes);
     }
 
+    /**
+     * [sortTeams 把每组数据按boss从小到大排序 把数据按分数由大到小排序]
+     * @param  [type] $data [原数据]
+     * @return [type]       [结果数据]
+     */
     private static function sortTeams($data)
     {
         $multiplierRates = self::$multiplierRates;
@@ -506,7 +511,7 @@ class TeamInfoService
         }
 
         $sort = 3;
-        // 综合排序
+        // 综合排序 已弃用
         if ($sort == 1) {
             usort($data, function($a, $b) use ($multiplierRates) {
                 $teamAugScoreA = 0;
@@ -518,7 +523,7 @@ class TeamInfoService
                 return $teamAugScoreB <=> $teamAugScoreA;
             });
         }
-        // 难度排序
+        // 难度排序 已弃用
         if ($sort == 2) {
             usort($data, function($a, $b) {
                 $teamDifficultyA = 0;
