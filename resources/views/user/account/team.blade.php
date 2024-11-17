@@ -83,15 +83,19 @@
 
                 for (let kk in data[key][k].team_roles) {
                   if (data[key][k].team_roles[kk].status == 1) {
-                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].role_id + '.webp" alt="图片">';
+                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片">';
                   } else {
-                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].role_id + '.webp" alt="图片" style="opacity:0.6;">';
+                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" style="opacity:0.6;">';
                   }
                 }
                 
                 html += '<span class="text">借</span>';
                 if (data[key][k].borrow) {
-                  html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].borrow + '.webp" alt="图片" class="image-after-text">';
+                  for (let kk in data[key][k].team_roles) {
+                    if (data[key][k].team_roles[kk].role_id == data[key][k].borrow) {
+                      html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" class="image-after-text">';
+                    }
+                  }
                 } else {
                   html += '<img src="' + '{{ asset('images') }}' + '/renyi.webp" alt="图片" class="image-after-text">';
                 }

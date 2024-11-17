@@ -150,10 +150,7 @@ class TeamInfoController extends Controller
 
             $role_ids = array_column($teams, 'role_id');
             // 验证角色参数
-            $count = Role::where(function ($query) use ($role_ids) {
-                $query->whereIn('role_id_3', $role_ids)
-                    ->orWhereIn('role_id_6', $role_ids);
-            })->count();
+            $count = Role::whereIn('role_id', $role_ids)->count();
             if ($count != 5) {
                 show_json(0, '角色参数错误');
             }
@@ -251,7 +248,7 @@ class TeamInfoController extends Controller
         $roles = Cache::get('roles');
         if (empty($roles)) {
             // 角色
-            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `role_id`, `position`, `nickname` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('role_id')->get();
+            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `role_id`, `position`, `nickname` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('role_id')->get();
             $roles = $roles ? $roles->toArray() : [];
             Cache::put('roles', $roles, 7200);
         }
@@ -268,7 +265,7 @@ class TeamInfoController extends Controller
             if (in_array($value->role_id, $teamRoles)) {
                 $switch = 1;
             }
-            $rolesMap[$value->position][] = ['role_id' => $value->role_id, 'switch' => $switch, 'nickname' => $value->nickname];
+            $rolesMap[$value->position][] = ['role_id' => $value->role_id, 'image_id' => $value->image_id, 'switch' => $switch, 'nickname' => $value->nickname];
         }
         return json_encode(['status' => 1, 'result' => $rolesMap]);
     }
@@ -365,8 +362,7 @@ class TeamInfoController extends Controller
     {
         if (is_array($role_ids)) {
             foreach ($role_ids as $key => $value) {
-                DB::table('roles')->where('role_id_6', (int)$value)->increment('use_times');
-                DB::table('roles')->where('role_id_3', (int)$value)->increment('use_times');
+                DB::table('roles')->where('role_id', (int)$value)->increment('use_times');
             }
         }
     }

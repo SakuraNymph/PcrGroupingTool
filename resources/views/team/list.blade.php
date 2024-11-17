@@ -204,7 +204,7 @@ layui.use(function(){
 
                 // 遍历团队角色，生成图片
                 for (let k in data[key].team_roles) {
-                    html += '<img val=' + data[key].team_roles[k].role_id + ' src="./images/' + data[key].team_roles[k].role_id + '.webp" alt="图片" switch="1"';
+                    html += '<img val=' + data[key].team_roles[k].role_id + ' src="./images/' + data[key].team_roles[k].image_id + '.webp" alt="图片" switch="1"';
                     
                     // 设置图片透明度，如果状态为 0
                     if (data[key].team_roles[k].status == 0) {

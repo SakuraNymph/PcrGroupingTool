@@ -124,9 +124,9 @@ class PcrController extends Controller
         }
 
 
-        $roles = DB::table('data_roles')->join('roles', 'data_roles.role_id', '=', 'roles.id')->select(DB::raw('data_roles.id as `hid`, CASE WHEN `roles`.`is_6` = 1 THEN `roles`.`role_id_6` ELSE `roles`.`role_id_3` END as `role_id`'))->get();
+        $roles = DB::table('data_roles')->join('roles', 'data_roles.role_id', '=', 'roles.id')->select('data_roles.id as hid', 'roles.role_id')->get();
         $roles = $roles ? $roles->toArray() : [];
-
+      
         $mapRoles = [];
         foreach ($roles as $key => $value) {
             $mapRoles[$value->hid] = $value->role_id;
@@ -182,8 +182,14 @@ class PcrController extends Controller
                     $homeworkInfo['link'] = json_encode($homework['video']);
                 }
                 if ($type == 1) { // 写入
-                    $homeworkInfo['created_at'] = Carbon::now();
-                    $tid = DB::table('teams')->insertGetId($homeworkInfo);
+                    $tid = DB::table('teams')->where('sn', $homeworkInfo['sn'])->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', Carbon::now()->month)->value('id');
+                    if ($tid) { // 有值修改
+                        $homeworkInfo['updated_at'] = Carbon::now();
+                        DB::table('teams')->where('id', $tid)->update($homeworkInfo);
+                    } else { // 无值写入
+                        $homeworkInfo['created_at'] = Carbon::now();
+                        $tid = DB::table('teams')->insertGetId($homeworkInfo);
+                    }
                 }
                 if ($type == 2) { // 修改
                     $homeworkInfo['updated_at'] = Carbon::now();
@@ -194,7 +200,6 @@ class PcrController extends Controller
                     $roles = $homework['unit'];
                     $oldRoles = json_decode($oldJsonStr, 1)['unit'];
                     if ($roles != $oldRoles) {
-                        DB::table('team_roles')->where('team_id', $tid)->delete();
                         $type = 1;
                     }
                 }
@@ -207,6 +212,7 @@ class PcrController extends Controller
                             'status'  => 1,
                         ];
                     }
+                    DB::table('team_roles')->where('team_id', $tid)->delete();
                     DB::table('team_roles')->insert($insertTeamRoles);
                 }
 
@@ -299,15 +305,61 @@ class PcrController extends Controller
         return isset($matches[1]) ? $matches[1] : null;
     }
 
+    public function bbbb()
+    {
+        return view('test');
+    }
+
     public function aaaa()
     {
 
-        for ($i=0; $i < 5; $i++) { 
-            if ($i == 3) {
-                return 6666;
-            }
-            dump($i);
+        $arr = [1,2,3];
+
+        dd($arr);
+
+    }
+
+    public function cccc()
+    {
+        $url = 'http://pcr.happy0227.asia/aaaa';
+        // $url = 'http://pcr.happy0227.asia/get_this_month_boss_list';
+        // $url = 'http://pcr.happy0227.asia/user/account/get_team_groups?id=3';
+
+        for ($i=0; $i < 20; $i++) { 
+            $res = $this->getApiUrl($url);
+            dump($res);
         }
+
+        dd('Success');
+        
+    }
+
+    public function dddd()
+    {
+
+        $data = DB::table('accounts')->get()->toArray();
+
+
+        foreach ($data as $key => $value) {
+            $str = $value->roles;
+            if ($str) {
+                $arr = explode(',', $str);
+
+                $roles = DB::table('roles')->whereIn('role_id_3', $arr)->orWhereIn('role_id_6', $arr)->pluck('role_id');
+
+                $roles = $roles ? $roles->toArray() : [];
+
+                // DB::table('accounts')->where('id', $value->id)->update(['roles' => implode(',', $roles)]);
+            }
+        }
+
+
+        
+
+        dd(33);
+        
+
+
 
 
 

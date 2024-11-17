@@ -38,9 +38,8 @@ class TeamInfoService
         }
         $data = Team::with(['teamRoles' => function ($query) {
                         $query->join('roles', function ($query) {
-                            $query->on('roles.role_id_3', '=', 'team_roles.role_id')
-                                    ->orOn('roles.role_id_6', '=', 'team_roles.role_id');
-                        })->select('team_roles.team_id', 'team_roles.role_id', 'team_roles.status')->orderBy('roles.search_area_width', 'DESC');
+                            $query->on('roles.role_id', '=', 'team_roles.role_id');
+                        })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
                     }])
                     ->where($where)
                     ->where(function ($query) use ($type) {
@@ -53,7 +52,7 @@ class TeamInfoService
                     ->orderBy('score', 'DESC')
                     ->get();
         $data = $data ? $data->toArray() : [];
-// return $data;
+
         if ($data) {
             usort($data, function($a, $b) {
                 // 逐个比较 role_id
@@ -180,9 +179,8 @@ class TeamInfoService
 
         $data = Team::with(['teamRoles' => function ($query) {
             $query->join('roles', function($join) {
-                $join->on('roles.role_id_3', '=', 'team_roles.role_id')
-                     ->orOn('roles.role_id_6', '=', 'team_roles.role_id');
-            })->orderBy('roles.search_area_width', 'DESC')->select('team_roles.team_id', 'team_roles.role_id', 'team_roles.status');
+                $join->on('roles.role_id', '=', 'team_roles.role_id');
+            })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
         }])
         ->where(function ($query) use ($uid, $type, $accountId) {
             if ($type && $accountId) {

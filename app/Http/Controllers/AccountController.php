@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AccountController extends Controller
 {
-    public $ds_coin = [123031,180931,118131,180831,106731,118531,180731,180331,180631,180131,106831,180231,180531,180431,107031,106131,107131,117731,118031,117231,117031,115531,111831,115031,114431,113931,113431,113131,112531,112431,112031,111931,111531,109931,109731,111131,110431,110631,110331,110031,109131,108831,108731,108431,108631,108131,108331,107931,107731,107831,107531];
+    public $ds_coin = [106931,123031,180931,118131,180831,106731,118531,180731,180331,180631,180131,106831,180231,180531,180431,107031,106131,107131,117731,118031,117231,117031,115531,111831,115031,114431,113931,113431,113131,112531,112431,112031,111931,111531,109931,109731,111131,110431,110631,110331,110031,109131,108831,108731,108431,108631,108131,108331,107931,107731,107831,107531];
     public function list(Request $request)
     {
         if ($request->method() == 'POST') {
@@ -194,7 +194,7 @@ class AccountController extends Controller
 
         // 角色
         $allRoles = DB::table('roles')
-                        ->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `role_id`, `position`, `nickname` '))
+                        ->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `role_id`, `position`, `nickname`, `name` '))
                         ->where('status', 1)
                         ->orderBy('use_times', 'DESC')
                         ->orderBy('role_id')
@@ -210,7 +210,7 @@ class AccountController extends Controller
 
         foreach ($allRoles as $key => $value) {
             $switch = in_array($value->role_id, $usedRoles) ? 1 : 0;
-            $roles[$value->position][] = ['role_id' => $value->role_id, 'switch' => $switch, 'nickname' => $value->nickname];
+            $roles[$value->position][] = ['role_id' => $value->role_id, 'image_id' => $value->image_id, 'switch' => $switch, 'name' => $value->name];
         }
         show_json(1, $roles);
     }
