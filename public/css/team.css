@@ -72,6 +72,9 @@ h5 {
   opacity:0.5;
 }
 
-#demoForm {
+#bossList {
+  text-align: center; /* 图片居中 */
+}
+#isAuto {
   text-align: center; /* 图片居中 */
 }

@@ -17,7 +17,13 @@
                 <span class="">分刀结果仅供参考，请以实际box练度为准</span>
               </h5>
             </div>
-              <div class="layui-form" id="demoForm"></div>
+              <div class="layui-form" id="bossList"></div>
+              @if($select_is_show)
+              <div class="layui-form" id="isAuto">
+                <input type="radio" name="type" value="1" title="自动/半自动" checked>
+                <input type="radio" name="type" value="2" title="手动"> 
+              </div>
+              @endif
               <div id="show"></div>
           </div>
         </div>
@@ -39,28 +45,30 @@
     ,form = layui.form;
 
     var id = "{{ $id }}";
+    var type = $('input[name="type"]:checked').val();
+    var bossMap = [];
 
     // radio 事件
-    form.on('radio(demo-radio-filter)', function(data){
+    form.on('radio', function(data){
       var elem = data.elem; // 获得 radio 原始 DOM 对象
       var checked = elem.checked; // 获得 radio 选中状态
       var value = elem.value; // 获得 radio 值
       var othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
-      
+      type = value;
       // layer.msg(['value: '+ value, 'checked: '+ checked].join('<br>'));
-      // getTeamGroups(value);
+      getTeamGroups(bossMap, type);
     });
 
     getTeamGroups();
     getBossList();
 
-    function getTeamGroups(bossMap = {}) {
+    function getTeamGroups(bossMap = {}, type = 1) {
       if (id == '0') {
         url = "{{ url('get_team_groups') }}";
       } else {
         url = "{{ url('user/account/get_team_groups') }}";
       }
-      $.get(url, { bossMap: bossMap, id: id }, function (res) {
+      $.get(url, { bossMap: bossMap, id: id, type:type }, function (res) {
         var obj = JSON.parse(res);
         if (obj.status == 1) {
           $('#show').html(''); // 清空容器
@@ -94,6 +102,7 @@
                   for (let kk in data[key][k].team_roles) {
                     if (data[key][k].team_roles[kk].role_id == data[key][k].borrow) {
                       html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" class="image-after-text">';
+                      break;
                     }
                   }
                 } else {
@@ -130,15 +139,15 @@
           for (let key in data) {
             html += '<div class="image-checkbox" data-status="0" data-value="' + data[key].sort + '"><img src="' + '{{ asset('boss') }}' + '/' + data[key].file_path + '" alt="选项1"></div>';
           }
-          $('#demoForm').html(html);
+          $('#bossList').html(html);
         }
       });
     }
 
-    var bossMap = [];
+    
 
     // 事件委托
-    $('#demoForm').on('click', '.image-checkbox', function() {
+    $('#bossList').on('click', '.image-checkbox', function() {
         var value = $(this).data('value');
         var status = $(this).data('status');
 
@@ -167,9 +176,8 @@
             });
         }
 
-        getTeamGroups(bossMap);
+        getTeamGroups(bossMap, type);
 
-        // console.log("Selected values: ", bossMap);
     });
 
 
@@ -194,7 +202,6 @@
       html += '<h2>图片：</h2>';
       if (image) {
         for (let k in image) {
-          // console.log(image[k].source);
           html += '<img src="' + image[k].url + '" alt="" style="width:100%">';
         }
       } else {

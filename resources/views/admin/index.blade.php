@@ -48,10 +48,9 @@
 
 <div class="button-container">
   
-  <!-- <button onclick="location.href='{{ url("team") }}'">分刀工具</button> -->
-  
+  <button onclick="location.href='{{ url("admin/team/get_boss_list") }}'">boss列表</button>
   <button onclick="location.href='{{ url("admin/team/list") }}'">作业列表</button>
-  <button onclick="location.href='{{ url("admin/team/get_data") }}'">获取数据</button>
+  <button onclick="location.href='{{ url("admin/team/get_boss_images") }}'">获取boss数据</button>
   @if(!Auth::guard('admin')->check())
   <!-- <button onclick="location.href='{{ url("register") }}'">注册</button> -->
   <!-- <button onclick="location.href='{{ url("admin/login") }}'">登录</button> -->

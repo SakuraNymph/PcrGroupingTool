@@ -272,7 +272,7 @@ class TeamInfoController extends Controller
 
     public function resTeam()
     {
-        return view('user.account.team', ['id' => 0]);
+        return view('user.account.team', ['id' => 0, 'select_is_show' => false]);
     }
 
     public function deleteAll()

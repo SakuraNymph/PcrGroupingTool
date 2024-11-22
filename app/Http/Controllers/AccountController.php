@@ -218,7 +218,7 @@ class AccountController extends Controller
     public function team(Request $request)
     {
         $id = (int)$request->input('id');
-        return view('user.account.team', ['id' => $id]);
+        return view('user.account.team', ['id' => $id, 'select_is_show' => true]);
     }
 
     public function coin(Request $request)
@@ -250,8 +250,9 @@ class AccountController extends Controller
     {
         $uid      = Auth::guard('user')->id();
         $id       = (int)$request->input('id');
+        $type     = (int)$request->input('type') ?? 1;
         $bossMap  = $request->input('bossMap') ?? [];
-        $teamsRes = TeamInfoService::getTeamGroups($uid, $bossMap, 1, $id);
+        $teamsRes = TeamInfoService::getTeamGroups($uid, $bossMap, $type, $id);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 }

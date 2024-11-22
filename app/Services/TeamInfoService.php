@@ -175,7 +175,16 @@ class TeamInfoService
      */
     public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0)
     {
-        $cacheKey = ($type && $accountId) ? 'autoTeams' : '';
+        if ($type && $accountId) {
+            if ($type == 1) {
+                $cacheKey = 'autoTeams';
+            }
+            if ($type == 2) {
+                $cacheKey = 'handTeams';
+            }
+        } else {
+            $cacheKey = '';
+        }
 
         $data = Team::with(['teamRoles' => function ($query) {
             $query->join('roles', function($join) {
@@ -184,7 +193,7 @@ class TeamInfoService
         }])
         ->where(function ($query) use ($uid, $type, $accountId) {
             if ($type && $accountId) {
-                $query->where(['open' => 2, 'auto' => 1]);
+                $query->where(['open' => 2, 'auto' => $type]);
             } else {
                 $query->where(['uid' => $uid]);
             }
@@ -207,12 +216,12 @@ class TeamInfoService
             }
         }
 
-        if ($type && $accountId) {
+        if ($cacheKey) {
             if ($makeArr) {
                 $teamsRes = self::makeTeams($data);
-                Cache::put('makeTeams', $teamsRes);
+                Cache::put($cacheKey . 'makeTeams', $teamsRes);
             } else {
-                $teamsRes = Cache::get('makeTeams');
+                $teamsRes = Cache::get($cacheKey . 'makeTeams');
             }
         } else {
             $teamsRes = self::makeTeams($data);

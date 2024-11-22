@@ -256,7 +256,7 @@ class AdminTeamController extends Controller
 
         if ($data) {
             foreach ($data as $key => $boss) {
-                $info = ['id' => $boss['id'], 'name' => $boss['iconValue']];
+                $info = ['id' => $boss['id'], 'name' => $boss['iconValue'], 'status' => 0];
                 $res = DB::table('boss')->where($info)->first();
                 if (is_null($res)) {
                     $ex = $this->getFileExtension($boss['iconFilePath']);
