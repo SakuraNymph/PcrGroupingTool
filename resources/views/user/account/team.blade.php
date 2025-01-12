@@ -1,5 +1,52 @@
 @extends('main')
 @section('css')
+<style>
+
+
+#bossList {
+  display: flex;
+  flex-direction: column;
+}
+
+.image-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.row-label {
+  writing-mode: vertical-rl;
+  text-align: center;
+  margin-right: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.image-checkbox {
+  position: relative;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.image-checkbox img {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.image-checkbox.selected img {
+  opacity: 1;
+}
+
+.image-checkbox.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 20px;
+  color: green;
+}
+
+</style>
 <link rel="stylesheet" href="{{ asset('css/team.css') }}" media="all">
 @endsection
 @section('content')
@@ -46,7 +93,7 @@
 
     var id = "{{ $id }}";
     var type = $('input[name="type"]:checked').val();
-    var bossMap = [];
+    var bossMap = {row1:0, row2:0, row3:0};
 
     // radio 事件
     form.on('radio', function(data){
@@ -59,16 +106,17 @@
       getTeamGroups(bossMap, type);
     });
 
-    getTeamGroups();
+    getTeamGroups(bossMap, type);
     getBossList();
 
-    function getTeamGroups(bossMap = {}, type = 1) {
+    function getTeamGroups(bossMap = {}, type = 0) {
       if (id == '0') {
         url = "{{ url('get_team_groups') }}";
+        type = 0;
       } else {
         url = "{{ url('user/account/get_team_groups') }}";
       }
-      $.get(url, { bossMap: bossMap, id: id, type:type }, function (res) {
+      $.get(url, { row1: bossMap.row1, row2: bossMap.row2, row3: bossMap.row3, id: id, type:type }, function (res) {
         var obj = JSON.parse(res);
         if (obj.status == 1) {
           $('#show').html(''); // 清空容器
@@ -130,55 +178,57 @@
       });
     }
 
+    let selectedImages = {}; // 存储每行选中的图片
+
+    // 动态获取并渲染图片
     function getBossList() {
       $.get("{{ url('get_this_month_boss_list') }}", function (res) {
         var obj = JSON.parse(res);
         if (obj.status == 1) {
           const data = obj.data;
           let html = '';
-          for (let key in data) {
-            html += '<div class="image-checkbox" data-status="0" data-value="' + data[key].sort + '"><img src="' + '{{ asset('boss') }}' + '/' + data[key].file_path + '" alt="选项1"></div>';
+          let rows = 3; // 假设有三行
+          let imagesPerRow = 5;
+
+          let num = ['', '①', '②', '③'];
+
+          for (let row = 1; row <= rows; row++) {
+            html += '<div class="image-row-new" data-row="' + row + '">';
+            for (let key in data) {
+              html += '<div class="image-checkbox" data-row="' + row + '" data-status="0" data-value="' + data[key].sort + '"><img src="' + '{{ asset('boss') }}' + '/' + data[key].file_path + '" alt="选项1"></div>';
+            }
+            html += '</div>';
           }
+
+
+
           $('#bossList').html(html);
         }
       });
     }
 
-    
-
-    // 事件委托
+    // 事件绑定
     $('#bossList').on('click', '.image-checkbox', function() {
-        var value = $(this).data('value');
-        var status = $(this).data('status');
+      const row = $(this).closest('.image-row-new').data('row');
+      const value = $(this).data('value');
+      const isSelected = $(this).hasClass('selected');
 
-        if (status == 0) {
-            // 添加到选中列表
-            if (bossMap.length < 3) {
-                bossMap.push(value);
-                $(this).data('status', 1);
-                $(this).find('img').css('opacity', 1);
-            } else {
-                // 超过三张，移除第一个
-                var firstValue = bossMap.shift();
-                $('.image-checkbox[data-value="' + firstValue + '"]').data('status', 0).find('img').css('opacity', 0.5);
-                
-                // 添加当前选择
-                bossMap.push(value);
-                $(this).data('status', 1);
-                $(this).find('img').css('opacity', 1);
-            }
-        } else {
-            // 已选中，移除
-            $(this).data('status', 0);
-            $(this).find('img').css('opacity', 0.5);
-            bossMap = bossMap.filter(function(item) {
-                return item !== value;
-            });
-        }
-
-        getTeamGroups(bossMap, type);
+      if (isSelected) {
+        // 取消选中当前图片
+        $(this).removeClass('selected');
+        bossMap['row' + row] = 0;
+        // delete bossMap['row' + row];
+      } else {
+        // 取消当前行的其他选中状态
+        $('.image-row-new[data-row="' + row + '"] .image-checkbox').removeClass('selected');
+        // 设置当前图片为选中
+        $(this).addClass('selected');
+        bossMap['row' + row] = value;
+      }
+      getTeamGroups(bossMap, type);
 
     });
+
 
 
 
