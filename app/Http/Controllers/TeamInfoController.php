@@ -30,7 +30,10 @@ class TeamInfoController extends Controller
 
     public function getUserTeams(Request $request)
     {
-        $uid = session('id');
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
         $boss = (int)$request->input('boss');
         if (!in_array($boss, [1,2,3,4,5])) {
             $boss = 1;
@@ -41,7 +44,10 @@ class TeamInfoController extends Controller
 
     public function getPublicTeams(Request $request)
     {
-        $uid = session('id');
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
         $boss = (int)$request->input('boss');
         if (!in_array($boss, [1,2,3,4,5])) {
             $boss = 1;
@@ -52,7 +58,10 @@ class TeamInfoController extends Controller
 
     public function addOtherTeam(Request $request)
     {
-        $uid    = session('id');
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
         $teamId = (int)$request->input('id');
         $roleId = (int)$request->input('role_id');
         $ok     = (int)TeamInfoService::addOtherTeam($uid, $teamId, $roleId);
@@ -143,7 +152,10 @@ class TeamInfoController extends Controller
             // 阵容
             $teams      = $params['teams'];
 
-            $uid = session('id');
+            $uid = Auth::guard('user')->id();
+            if (!$uid) {
+                $uid = session('id');
+            }
             if (empty($uid)) {
                 show_json(0, '系统错误请刷新');  
             }
@@ -236,9 +248,14 @@ class TeamInfoController extends Controller
 
     public function getTeamGroups(Request $request)
     {
-        $uid = session('id');
-        $bossMap = $request->input('bossMap') ?? [];
-        $teamsRes = TeamInfoService::getTeamGroups($uid, $bossMap);
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
+        $row1     = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
+        $row2     = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
+        $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
+        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3]);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 
@@ -277,7 +294,10 @@ class TeamInfoController extends Controller
 
     public function deleteAll()
     {
-        $uid = session('id');
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
         // DB::beginTransaction();
         $ok = DB::table('teams')
                 ->where('uid', $uid)
@@ -296,7 +316,10 @@ class TeamInfoController extends Controller
     {
         $id    = (int)$request->input('id');
         $type  = (int)$request->input('type');
-        $uid   = session('id');
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
         $where = $type ? ['otid' => $id] : ['id' => $id];
         $ok    = DB::table('teams')->where($where)->where('uid', $uid)->update(['status' => 0]);
         if ($ok) {
