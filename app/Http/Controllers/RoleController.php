@@ -26,7 +26,7 @@ class RoleController extends Controller
             // 用户名
             if ($request->input('nickname')) {
 
-                $condition .= ' and nickname like :nickname';
+                $condition .= ' and name like :nickname';
                 $params['nickname'] = '%' . trim(htmlspecialchars($request->input('nickname'))) . '%';
             }
 
