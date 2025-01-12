@@ -54,6 +54,22 @@ body {
         }
 
 
+        .fixed-btn {
+            position: fixed;  /* 固定定位 */
+            bottom: 30%;      /* 距离底部10% */
+            right: 10%;       /* 距离右侧10% */
+            padding: 10px 20px;
+            background-color: #007bff;  /* 按钮背景色 */
+            color: white;             /* 按钮文本颜色 */
+            border: none;             /* 去除边框 */
+            border-radius: 5px;       /* 圆角 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+            cursor: pointer;          /* 鼠标悬停时显示指针 */
+            font-size: 16px;           /* 字体大小 */
+            z-index: 1000;             /* 确保按钮在其他元素上方 */
+        }
+
+
 
 </style>
 
@@ -84,7 +100,7 @@ body {
         </div>
       </div>
 
-
+      <a href="{{ url('/') }}"><button class="fixed-btn">返回首页</button></a>
           
 
 
