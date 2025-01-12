@@ -52,7 +52,6 @@ class TeamInfoService
                     ->orderBy('score', 'DESC')
                     ->get();
         $data = $data ? $data->toArray() : [];
-
         if ($data) {
             usort($data, function($a, $b) {
                 // 逐个比较 role_id
@@ -182,8 +181,10 @@ class TeamInfoService
             if ($type == 2) {
                 $cacheKey = 'handTeams';
             }
+            $where = ['open' => 2, 'auto' => $type];
         } else {
             $cacheKey = '';
+            $where = ['uid' => $uid];
         }
 
         $data = Team::with(['teamRoles' => function ($query) {
@@ -191,11 +192,11 @@ class TeamInfoService
                 $join->on('roles.role_id', '=', 'team_roles.role_id');
             })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
         }])
-        ->where(function ($query) use ($uid, $type, $accountId) {
+        ->where(function ($query) use ($uid, $type, $accountId, $where) {
             if ($type && $accountId) {
-                $query->where(['open' => 2, 'auto' => $type]);
+                $query->where($where);
             } else {
-                $query->where(['uid' => $uid]);
+                $query->where($where);
             }
         })
         ->where('status', 1)
@@ -205,7 +206,6 @@ class TeamInfoService
         ->get();
 
         $data = $data ? $data->toArray() : [];
-
         $makeArr = false;
 
         if ($cacheKey) {
@@ -224,6 +224,27 @@ class TeamInfoService
                 $teamsRes = Cache::get($cacheKey . 'makeTeams');
             }
         } else {
+            $data_huawu = Cache::get('data_huawu');
+            if (empty($data_huawu)) {
+                $data_huawu = team::where(['uid' => 0, 'status' => 1])
+                                ->whereYear('created_at', Carbon::now()->year)
+                                ->whereMonth('created_at', Carbon::now()->month)
+                                ->orderBy('id')
+                                ->get();
+                Cache::put('data_huawu', $data_huawu);
+            }
+
+            $data_huawu_new = [];
+            foreach ($data_huawu as $key => $value) {
+                $data_huawu_new[$value->id] = $value->link;
+            }
+
+            // 替换link数据
+            foreach ($data as $key => $value) {
+                if ($value['otid']) {
+                    $data[$key]['link'] = $data_huawu_new[$value['otid']];
+                }
+            }
             $teamsRes = self::makeTeams($data);
         }
 
@@ -235,18 +256,61 @@ class TeamInfoService
             }
         }
 
-        $successNum = 20;
-        $failNum = 0;
-        $bossMapCount = $bossMap ? count($bossMap) : 0;
+        $successNum = 50;
+        $failNum    = 0;
+        $bossMapNum = 0;
+        foreach ($bossMap as $key => $value) {
+            if (!$value) {
+                unset($bossMap[$key]);
+            }
+        }
+        $bossMapNum = count($bossMap);
+        $bossMapCountValues = count(array_count_values($bossMap));
+
+        sort($bossMap);
 
         foreach ($teamsRes as $key => $teams) {
-            $teamsBoss = [];
-            $roleStatus = [];
+            $roleStatus     = [];
+            $teamBossMap    = [];
             $continueSwitch = false;
+            
+
             foreach ($teams as $k => $teamInfo) {
-                if ($bossMap) { // 筛选特定boss作业
-                    $teamsBoss[] = $teamInfo['boss'];
+                $teamBossMap[] = $teamInfo['boss'];
+            }
+
+            if ($bossMap) {
+                if ($bossMapNum == 1) { // 只选择一个boss
+                    if (!array_intersect($bossMap, $teamBossMap)) {
+                        $continueSwitch = true;
+                    }
                 }
+                if ($bossMapNum == 2) { // 选择两个boss
+                    if ($bossMapCountValues == 1) { // 两个boss相同
+                        if (count(array_intersect($teamBossMap, $bossMap)) != 2) {
+                            $continueSwitch = true;
+                        }
+                    }
+                    if ($bossMapCountValues == 2) { // 两个boss不同
+                        if (count(array_intersect($bossMap, $teamBossMap)) != 2) {
+                            $continueSwitch = true;
+                        }
+                    }
+                }
+                if ($bossMapNum == 3) { // 选择三个boss
+                    if ($teamBossMap != $bossMap) {
+                        $continueSwitch = true;
+                    }
+                }
+            }
+
+            if ($continueSwitch) {
+                unset($teamsRes[$key]);
+                $failNum++;
+                continue;
+            }
+
+            foreach ($teams as $k => $teamInfo) {
                 if ($type && $accountId) { // 筛选角色 每队至少要拥有4名角色
                     if (count(array_intersect($userBox, array_column($data[$teamInfo['dataKey']]['team_roles'], 'role_id'))) < 4) { // 每队至少拥有4名角色
                         $continueSwitch = true;
@@ -285,14 +349,6 @@ class TeamInfoService
                 continue;
             }
 
-            if ($bossMap) {
-                if (count(array_intersect($bossMap, $teamsBoss)) < $bossMapCount) {
-                    unset($teamsRes[$key]);
-                    $failNum++;
-                    continue;
-                }
-            }
-
             if (($key - $failNum) >= $successNum) { // 实际比successNum多一个
                 break;
             }
@@ -323,6 +379,8 @@ class TeamInfoService
             }
             self::borrowRoles($teams);
         }
+        // 用户分刀数据记录
+        self::dataFightLog($uid, $type, $bossMap);
         return $res;
     }
 
@@ -555,6 +613,17 @@ class TeamInfoService
             });
         }
         return $data;
+    }
+
+    private static function dataFightLog($uid, $type = 0, $boss = [])
+    {
+        if ($boss && is_array($boss)) {
+            $boss = implode(',', $boss);
+        } else {
+            $boss = '';
+        }
+        $insert = ['uid' => $uid, 'type' => $type, 'boss' => $boss, 'created_at' => Carbon::now()];
+        DB::table('data_fight')->insert($insert);
     }
 
     
