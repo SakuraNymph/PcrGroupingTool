@@ -17,7 +17,22 @@ use Illuminate\Support\Facades\Validator;
 
 class AccountController extends Controller
 {
-    public $ds_coin = [106931,123031,180931,118131,180831,106731,118531,180731,180331,180631,180131,106831,180231,180531,180431,107031,106131,107131,117731,118031,117231,117031,115531,111831,115031,114431,113931,113431,113131,112531,112431,112031,111931,111531,109931,109731,111131,110431,110631,110331,110031,109131,108831,108731,108431,108631,108131,108331,107931,107731,107831,107531];
+    public $ds_coin = [
+        106931,123031,180931,118131,
+        180831,106731,118531,180731,
+        180331,180631,180131,106831,
+        180231,180531,180431,107031,
+        106131,107131,119931,117731,
+        118031,117231,117031,115531,
+        111831,115031,114431,113931,
+        113431,113131,112531,112431,
+        112031,111931,111531,109931,
+        109731,111131,110431,110631,
+        110331,110031,109131,108831,
+        108731,108431,108631,108131,
+        108331,107931,107731,107831,
+        107531
+    ];
     public function list(Request $request)
     {
         if ($request->method() == 'POST') {
@@ -115,8 +130,8 @@ class AccountController extends Controller
             //     show_json(0, '角色参数错误');
             // }
 
-            // 判断狐狸 狐狸ID 101061
-            if (in_array(101061, $role_ids)) {
+            // 判断狐狸 狐狸ID 101001
+            if (in_array(101001, $role_ids)) {
                 $fox = 1;
             }
 
@@ -171,14 +186,14 @@ class AccountController extends Controller
         $uid = Auth::guard('user')->id();
         $account = Account::where(['id' => $id, 'uid' => $uid])->first();
         $roles = explode(',', $account->roles);
-        if (in_array(101061, $roles)) {
-            unset($roles[array_search(101061, $roles)]);
+        if (in_array(101001, $roles)) {
+            unset($roles[array_search(101001, $roles)]);
         }
         if ($account->fox_switch) {
             $account->fox_switch = 0;
         } else {
             $account->fox_switch = 1;
-            array_push($roles, 101061);
+            array_push($roles, 101001);
         }
         $account->roles = implode(',', $roles);
         $account->save();
@@ -251,8 +266,12 @@ class AccountController extends Controller
         $uid      = Auth::guard('user')->id();
         $id       = (int)$request->input('id');
         $type     = (int)$request->input('type') ?? 1;
-        $bossMap  = $request->input('bossMap') ?? [];
-        $teamsRes = TeamInfoService::getTeamGroups($uid, $bossMap, $type, $id);
+
+        $row1     = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
+        $row2     = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
+        $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
+
+        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], $type, $id);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 }
