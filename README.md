@@ -1,6 +1,9 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
 ## 演示地址 http://pcr.happy0227.asia/
 
+### 2025.01.14
+v0.4 前台新增攻略展示 后台新增攻略审核
+
 ### 2025.01.12 
 v0.3 新增分刀boss筛选 可筛选每刀的boss 支持某boss三连刀
 
