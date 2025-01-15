@@ -333,9 +333,6 @@ body {
 
       if (event === 'delete') {
         layer.confirm('确定要删除该账号吗?', {icon: 3, title: '删除账号'}, function(index) {
-          // console.log(data.id);
-          // return false;
-
           $.post("{{ url('user/account/delete') }}", {id: data.id}, function(res) {
             var obj = JSON.parse(res);
             if (obj.status) {

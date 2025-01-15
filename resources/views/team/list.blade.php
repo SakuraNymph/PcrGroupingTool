@@ -210,6 +210,9 @@ layui.use(function(){
             // 遍历每个团队数据
             for (let key in data) {
                 html += '<fieldset class="layui-elem-field"><div class="container"><div class="header"><h1>E' + data[key].boss + '</h1>';
+                
+                html += '<h4>' + data[key].sn + '</h4>';
+
                 html += '<h2>预估伤害：' + data[key].score + '</h2>';
                 
                 // 根据自动/手动设置显示相应的标签
