@@ -287,7 +287,7 @@ class TeamInfoService
                 }
                 if ($bossMapNum == 2) { // 选择两个boss
                     if ($bossMapCountValues == 1) { // 两个boss相同
-                        if (count(array_intersect($teamBossMap, $bossMap)) != 2) {
+                        if (count(array_intersect($teamBossMap, $bossMap)) < 2) {
                             $continueSwitch = true;
                         }
                     }
