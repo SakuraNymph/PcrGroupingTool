@@ -138,6 +138,19 @@ body {
     ,form = layui.form;
 
 
+  function isMobileDevice() {
+      return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  if (isMobileDevice()) {
+    var width_ = '100%';
+      // console.log("这是移动设备");
+  } else {
+    var width_ = '60%';
+      // console.log("这是PC设备");
+  }
+
+
 
     
 
@@ -174,9 +187,26 @@ body {
       }
     });
   });
+
+
   $('button[data-action=res]').click(function() {
-    location.href ='{{ url("res_team") }}';
+    $.get("{{ url('/get_team_num') }}", {type:1}, function(num) {
+      if (num >= 3) {
+        var url = "{{ url('/res_team') }}";
+        layer.open({
+          type: 2
+          ,title: '分刀'
+          ,content: url
+          ,maxmin: true
+          ,area: [width_, '100%'] 
+        });
+      } else {
+        layer.msg('至少添加三个作业才可以分刀哦,Ciallo～(∠・ω< )⌒★');
+      }
+    });
   });
+
+
   $('button[data-action=del]').click(function() {
       layer.confirm('确定要清空所有作业吗?', {icon: 3, title: '删除'}, function(index) {
         $.ajaxSetup({
@@ -222,10 +252,10 @@ layui.use(function(){
         let html = '<div class="layui-col-md12"><div class="layui-card"><div class="layui-card-body">';
         for (let key in data) {
           html += '<fieldset class="layui-elem-field"><div class="container"><div class="header"><h1>E' + data[key].boss + '</h1>';
-          if (data[key].open) {
-            html += '<h5>公开</h5>';
+          if (data[key].sn) {
+            html += '<h4>' + data[key].sn + '</h4>';
           } else {
-            html += '<h5>保密</h5>';
+            html += '<h4>自定义</h4>';
           }
           html += '<h2>预估伤害：' + data[key].score + '</h2></div><div class="images">';
           for (let k in data[key].team_roles) {

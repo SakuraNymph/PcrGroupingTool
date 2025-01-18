@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\PcrController::class, 'index']);
 
-Route::get('list', [App\Http\Controllers\RoleController::class, 'list']);
+
+
+
 
 Route::post('list', [App\Http\Controllers\RoleController::class, 'list']);
 
@@ -32,7 +34,7 @@ Route::post('add_author', [App\Http\Controllers\AuthorController::class, 'addAut
 
 Route::get('get_author', [App\Http\Controllers\AuthorController::class, 'getAuthor']);
 
-Route::get('rank', [App\Http\Controllers\RankController::class, 'index']);
+Route::get('rank_info', [App\Http\Controllers\RankController::class, 'index']);
 
 Route::get('add', [App\Http\Controllers\RankController::class, 'add']);
 
@@ -51,6 +53,13 @@ Route::post('get_can_use_roles', [App\Http\Controllers\RankController::class, 'g
 Route::get('rank_image', [App\Http\Controllers\RankController::class, 'rankImage']);
 
 Route::get('teach', [App\Http\Controllers\RankController::class, 'teach']);
+
+Route::get('support', [App\Http\Controllers\RankController::class, 'support']);
+
+Route::get('bug', [App\Http\Controllers\RankController::class, 'bug']);
+
+Route::get('role_6', [App\Http\Controllers\RankController::class, 'role6']);
+
 
 // 花凛投票页面
 Route::get('toupiao', [App\Http\Controllers\RankController::class, 'toupiao']);
@@ -84,9 +93,41 @@ Route::middleware('auth:admin')->group(function () {
 	Route::get('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
 	Route::post('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
 
+	// 角色列表页面
+	Route::get('list', [App\Http\Controllers\RoleController::class, 'list']);
 
 	Route::get('admin/team/get_boss_images', [App\Http\Controllers\AdminTeamController::class, 'getBossImages']);
+	Route::get('admin/team/get_boss_list', [App\Http\Controllers\AdminTeamController::class, 'getBossList']);
+
+	// 攻略信息
+	Route::get('admin/guide/list', [App\Http\Controllers\GuideController::class, 'list']);
+	Route::post('admin/guide/list', [App\Http\Controllers\GuideController::class, 'list']);
+
+	// 修改攻略页面
+	Route::get('/admin/guide/edit', [App\Http\Controllers\GuideController::class, 'edit']);
+	// 修改攻略接口
+	Route::post('/admin/guide/edit', [App\Http\Controllers\GuideController::class, 'edit']);
+
+	// 修改攻略状态接口
+	Route::post('/admin/guide/status', [App\Http\Controllers\GuideController::class, 'status']);
+
+	// 修改攻略类型接口
+	Route::post('/admin/guide/type', [App\Http\Controllers\GuideController::class, 'type']);
+
+	// 删除攻略接口
+	Route::post('/admin/guide/delete', [App\Http\Controllers\GuideController::class, 'delete']);
 });
+
+// 获取攻略数据
+Route::get('/guide/get_data', [App\Http\Controllers\GuideController::class, 'getData']);
+
+// 添加攻略页面
+Route::get('guide/add', [App\Http\Controllers\GuideController::class, 'add']);
+// 添加攻略接口
+Route::post('guide/add', [App\Http\Controllers\GuideController::class, 'add']);
+
+// 攻略首页页面
+Route::get('guide', [App\Http\Controllers\GuideController::class, 'guide']);
 
 Route::middleware('auth:user')->group(function () {
 
@@ -126,6 +167,9 @@ Route::get('res_team', [App\Http\Controllers\TeamInfoController::class, 'resTeam
 
 Route::get('team', [App\Http\Controllers\TeamInfoController::class, 'team']);
 
+// 获取当月作业数量接口
+Route::get('get_team_num', [App\Http\Controllers\TeamInfoController::class, 'getTeamNum']);
+
 // 添加队伍页面
 Route::get('add_team', [App\Http\Controllers\TeamInfoController::class, 'add']);
 
@@ -163,5 +207,14 @@ Route::get('get_this_month_boss_list', [App\Http\Controllers\BossController::cla
 
 Route::get('get_data', [App\Http\Controllers\PcrController::class, 'getData']);
 
+Route::get('get_data2', [App\Http\Controllers\PcrController::class, 'getData2']);
 
 Route::get('aaaa', [App\Http\Controllers\PcrController::class, 'aaaa']);
+
+Route::get('bbbb', [App\Http\Controllers\PcrController::class, 'bbbb']);
+
+Route::get('cccc', [App\Http\Controllers\PcrController::class, 'cccc']);
+
+Route::get('dddd', [App\Http\Controllers\PcrController::class, 'dddd']);
+
+Route::get('eeee', [App\Http\Controllers\RankController::class, 'aaaa']);

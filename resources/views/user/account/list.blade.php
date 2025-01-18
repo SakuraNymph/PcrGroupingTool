@@ -269,15 +269,19 @@ body {
       }
 
       if (event === 'result') {
-        var url = "{{ url('user/account/team') }}" + "?id=" + data.id;
-        // console.log(data);
-        // return false;
-        layer.open({
-          type: 2
-          ,title: '分刀'
-          ,content: url
-          ,maxmin: true
-          ,area: [width_, '100%'] 
+        $.get("{{ url('/get_team_num') }}", {type:2}, function(num) {
+          if (num >= 3) {
+            var url = "{{ url('user/account/team') }}" + "?id=" + data.id;
+            layer.open({
+              type: 2
+              ,title: '分刀'
+              ,content: url
+              ,maxmin: true
+              ,area: [width_, '100%'] 
+            });
+          } else {
+            layer.msg('本月作业暂未更新,敬请期待,Ciallo～(∠・ω< )⌒★');
+          }
         });
       }
 

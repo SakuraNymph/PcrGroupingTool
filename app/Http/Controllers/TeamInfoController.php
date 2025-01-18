@@ -330,6 +330,37 @@ class TeamInfoController extends Controller
         show_json(0);
     }
 
+    /**
+     * [getTeamNum 获取当月作业数量]
+     * @param  Request $request [description]
+     * @return [type]           [1用户添加2作业网数据]
+     */
+    public function getTeamNum(Request $request)
+    {
+        $type = (int)$request->input('type');
+        if (!in_array($type, [1,2])) {
+            $type = 1;
+        }
+
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
+
+        if ($type == 1) { // 用户添加
+            $where = ['uid' => $uid, 'status' => 1];
+        }
+
+        if ($type == 2) { // 作业网数据
+            $where = ['uid' => 0, 'status' => 1, 'open' => 2];
+        }
+
+        $num = Team::where($where)
+                    ->whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth('created_at', Carbon::now()->month)->count();
+        return $num;
+    }
+
     private function sumStatusNum($teams = [])
     {
         $sum = 0;
