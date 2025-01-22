@@ -1,6 +1,9 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
 ## 演示地址 http://pcr.happy0227.asia/
 
+### 2025.01.22
+v0.5 添加作业订阅功能
+
 ### 2025.01.14
 v0.4 前台新增攻略展示 后台新增攻略审核
 
