@@ -50,16 +50,15 @@ Route::get('result', [App\Http\Controllers\RankController::class, 'result']);
 
 Route::post('get_can_use_roles', [App\Http\Controllers\RankController::class, 'getCanUseRoles']);
 
-Route::get('rank_image', [App\Http\Controllers\RankController::class, 'rankImage']);
-
 Route::get('teach', [App\Http\Controllers\RankController::class, 'teach']);
 
 Route::get('support', [App\Http\Controllers\RankController::class, 'support']);
 
 Route::get('bug', [App\Http\Controllers\RankController::class, 'bug']);
 
-Route::get('role_6', [App\Http\Controllers\RankController::class, 'role6']);
+Route::get('subscribe', [App\Http\Controllers\RankController::class, 'subscribe']);
 
+Route::post('subscribe', [App\Http\Controllers\RankController::class, 'subscribe']);
 
 // 花凛投票页面
 Route::get('toupiao', [App\Http\Controllers\RankController::class, 'toupiao']);

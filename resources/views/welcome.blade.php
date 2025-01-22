@@ -20,6 +20,7 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
+    flex-direction: column;
   }
 
   .button-container {
@@ -43,34 +44,54 @@
   .button-container button:hover {
     background-color: #0056b3;
   }
+
+  .hint-text {
+    font-size: 14px;
+    color: #888;
+    margin-top: 20px;
+    text-align: center;
+    width: 100%;
+  }
 </style>
 </head>
 <body>
 
 <div class="button-container">
   
-  <!-- <button onclick="location.href='{{ url("team") }}'">分刀工具</button> -->
-  
+  @if(Auth::guard('user')->check())
+  <button onclick="location.href='{{ url("user/account/list") }}'">我的账号</button>
+  @endif
+
   <button onclick="location.href='{{ url("team") }}'">我的作业</button>
   <button onclick="location.href='{{ url("team_list") }}'">作业列表</button>
-  <button id="rank">推荐rank</button>
+  <button id="subscribe">作业订阅</button>
+  <div id="rank_button">
+  </div>
+  <button onclick="location.href='{{ url("guide") }}'">推荐攻略</button>
+  <!-- <button id="rank">推荐rank</button> -->
   <button id="teach">使用教程</button>
+  <button id="support">支持作者</button>
+  <button id="bug">bug反馈</button>
+  <a href="https://github.com/SakuraNymph/PcrGroupingTool"><button>github</button></a>
+  
   @if(!Auth::guard('user')->check())
   <button onclick="location.href='{{ url("register") }}'">注册</button>
   <button onclick="location.href='{{ url("login") }}'">登录</button>
   @endif
-  @if(Auth::guard('user')->check())
-  <button onclick="location.href='{{ url("user/account/list") }}'">我的账号</button>
-  @endif
+
 </div>
+
+<!-- 页面底部的提示文字 -->
+<p class="hint-text">每月会战前一天更新作业数据</p>
+<p class="hint-text">域名即将到期,最新域名【pcr.saololi.asia】</p>
 
 </body>
 </html>
+
 <script src="/layuiadmin/layui/layui.js"></script>
 <script src="/layuiadmin/jquery-3.4.1.min.js"></script>
 
 <script type="text/javascript">
-
   function isMobileDevice() {
       return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }
@@ -78,36 +99,86 @@
   if (isMobileDevice()) {
     var width_rank = '100%';
     var width_teach = '100%';
-      // console.log("这是移动设备");
   } else {
     var width_rank = '60%';
     var width_teach = '40%';
-      // console.log("这是PC设备");
   }
 
   layui.use(function () {
-    $('#rank').click(function () {
-      var url = "{{ url('rank_image') }}";
-        // console.log(data);
+
+    
+
+    $('#subscribe').click(function () {
+      const uid = "{{ $uid }}";
+      if (uid) {
+        var url = "{{ url('subscribe') }}";
         layer.open({
           type: 2
-          ,title: '推荐rank 仅供参考 交流群943379496'
+          ,title: '作业订阅'
           ,content: url
           ,maxmin: true
-          ,area: [width_rank, '100%']
+          ,area: ['60%', '50%']
         });
+      } else {
+        layer.msg('请注册后使用');
+      }
+    });
+
+    $('#rank').click(function () {
+      var url = "{{ url('rank_image') }}";
+      layer.open({
+        type: 2
+        ,title: '推荐rank 仅供参考'
+        ,content: url
+        ,maxmin: true
+        ,area: [width_rank, '100%']
+      });
+    });
+
+    $('#bug').click(function () {
+      var url = "{{ url('bug') }}";
+      layer.open({
+        type: 2
+        ,title: 'bug反馈'
+        ,content: url
+        ,maxmin: true
+        ,area: [width_rank, '100%']
+      });
     });
 
     $('#teach').click(function () {
       var url = "{{ url('teach') }}";
-        // console.log(data);
-        layer.open({
-          type: 2
-          ,title: '使用教程 交流群943379496'
-          ,content: url
-          ,maxmin: true
-          ,area: [width_teach, '100%']
-        });
+      layer.open({
+        type: 2
+        ,title: '使用教程'
+        ,content: url
+        ,maxmin: true
+        ,area: [width_teach, '100%']
+      });
+    });
+
+    $('#support').click(function () {
+      var url = "{{ url('support') }}";
+      layer.open({
+        type: 2
+        ,title: '支持作者'
+        ,content: url
+        ,maxmin: true
+        ,area: [width_teach, '100%']
+      });
     });
   });
+
+  $.get("{{ url('/guide/get_data') }}", {type:2}, function(res) {
+    var obj = JSON.parse(res);
+    if (obj.status) {
+      let data = obj.data;
+      let html = '';
+      for(const key in data) {
+        html += '<a href="' + data[key].url + '" target="_blank"><button>' + data[key].title + '</button></a>';
+      }
+      $('#rank_button').html(html);
+    }
+  });
+
 </script>

@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Author;
 use App\Models\RankInfo;
 use App\Models\Role;
-use App\Services\RoleService;
+use App\Models\User;
+use App\Services\RankService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -305,11 +306,6 @@ class RankController extends Controller
         return view('result', ['data' => $rank_info_data, 'colors' => $authors]);
     }
 
-    public function rankImage()
-    {
-        $html = '<img src="' . asset('rank') . '/rank.png" alt="" style="width: 100%; height: auto;" loading="lazy">';
-        echo $html;
-    }
 
     public function teach()
     {
@@ -319,6 +315,34 @@ class RankController extends Controller
         }
         echo $html;
     }
+
+    public function support()
+    {
+        $html = '';
+        $html .= '<img src="' . asset('rank') . '/vx.png" alt="" style="width: 100%; height: auto;" loading="lazy">';
+        $html .= '<img src="' . asset('rank') . '/zfb.jpg" alt="" style="width: 100%; height: auto;" loading="lazy">';
+        echo $html;
+    }
+
+    public function bug()
+    {
+        $html = '<img src="' . asset('rank') . '/qun.jpg" alt="" style="width: 100%; height: auto;" loading="lazy">';
+        echo $html;
+    }
+
+    public function subscribe(Request $request)
+    {
+        $uid = Auth::guard('user')->id();
+        $status = User::where('id', $uid)->value('is_subscribe');
+        if ($request->method() == 'POST') {
+            User::where('id', $uid)->update(['is_subscribe' => ( 1 - (int)$status )]);
+            $msg = $status ? '关闭成功' : '开启成功';
+            return json_encode(['msg' => $msg]);
+        }
+        return view('subscribe', ['status' => $status]);
+    }
+
+    
 
     public function toupiao(Request $request)
     {
@@ -383,5 +407,12 @@ class RankController extends Controller
         dump('aid:' . $aid);
         dump('uid:' . $uid);
         dump('IP:' . $ip);
+    }
+
+    public function aaaa()
+    {
+        $res = RankService::testCache();
+
+        dd($res);
     }
 }

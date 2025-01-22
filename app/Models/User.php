@@ -17,7 +17,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password', 'ip', 'status', 'nickname'
+        'name', 'email', 'password', 'ip', 'status', 'nickname', 'is_subscribe'
     ];
 
     /**
@@ -42,7 +42,7 @@ class User extends Authenticatable
     {
         $exists = self::where('ip', $ip)->exists();
         if (!$exists) {
-            self::create(['ip' => $ip, 'status' => 0]);
+            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0]);
         }
         $user_info = self::where('ip', $ip)->first();
         $user_info = $user_info ? $user_info->toArray() : [];

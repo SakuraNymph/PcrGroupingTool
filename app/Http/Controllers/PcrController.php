@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Account;
 use App\Models\User;
+use App\Services\CustomMailer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,15 +26,8 @@ class PcrController extends Controller
 
     public function index(Request $request)
     {
-
-        // dd(Auth::guard('admin')->user());
-        // dd(Auth::guard('user')->user());
-
-        // Auth::logout();
-        // $request->session()->invalidate();
-        // $request->session()->regenerateToken();
-
-        return view('welcome');
+        $uid = Auth::guard('user')->id();
+        return view('welcome', ['uid' => $uid]);
     }
 
     private function createDatabase()
@@ -80,6 +75,65 @@ class PcrController extends Controller
         }
     }
 
+    public function getData2()
+    {
+        $apiUrl = 'https://www.caimogu.cc/gzlj/data/icon?date=&lang=zh-cn';
+
+        $headerArray = [
+            'accept:*/*',
+            'referer:https://www.caimogu.cc/gzlj.html?',
+            'sec-ch-ua:"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+            'sec-ch-ua-mobile:?0',
+            'sec-ch-ua-platform:"Windows"',
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+            'x-requested-with:XMLHttpRequest',
+        ];
+
+        $res = $this->getApiUrl($apiUrl, $headerArray);
+
+        $data = $res['status'] ? $res['data'] : [];
+
+        $send = false;
+        foreach ($data as $key => $value) {
+            foreach ($value as $k => $val) {
+                // boss信息
+                if ($key == 3) {
+                    $info = ['id' => $val['id'], 'name' => $val['iconValue']];
+                    $res = DB::table('boss')->where($info)->exists();
+                    if (!$res) {
+                        $ex = $this->getFileExtension($val['iconFilePath']);
+                        $fileName = md5(rand(100000, 999999)) . '.' . $ex;
+                        $ok = $this->downloadImage($val['iconFilePath'], $fileName, 'boss');
+                        if ($ok) {
+                            $info['file_path'] = $fileName;
+                            $info['status']    = 0;
+                            DB::table('boss')->insert($info);
+                        }
+                    }
+                } else {
+                    // 角色信息
+                    if (trim($val['iconValue'])) {
+                        $info = ['id' => $val['id'], 'icon_id' => $val['iconId'], 'icon_value' => $val['iconValue']];
+                        $res = DB::table('data_roles')->where($info)->exists();
+                        if (!$res) {
+                            $info['type'] = 1;
+                            $info['icon_file_path'] = $val['iconFilePath'];
+                            DB::table('data_roles')->insert($info);
+                            $send = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($send) {
+            $customMailer = new CustomMailer;
+            $customMailer->send('664990597@qq.com', '公主连结分刀助手', 'PCR有新的角色信息');
+        }
+        
+        return 'Success';
+    }
+
     public function getData()
     {
 
@@ -123,7 +177,6 @@ class PcrController extends Controller
             }
         }
 
-
         $roles = DB::table('data_roles')->join('roles', 'data_roles.role_id', '=', 'roles.id')->select('data_roles.id as hid', 'roles.role_id')->get();
         $roles = $roles ? $roles->toArray() : [];
       
@@ -132,8 +185,9 @@ class PcrController extends Controller
             $mapRoles[$value->hid] = $value->role_id;
         }
 
-
         
+        $send = false; // 发送邮件开关 
+        $emailTeam = [];    
         foreach ($data as $key => &$homework) {
             $sn         = $homework['sn'];
             $oldJsonStr = Cache::get($sn);
@@ -162,6 +216,9 @@ class PcrController extends Controller
                     'remark' => $homework['info']
                 ];
 
+                $tid = DB::table('teams')->where('sn', $sn)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', Carbon::now()->month)->value('id');
+
+                $team_titles_map = [];
                 if ($homework['video'] && $oldVideoJsonStr != $videoJsonStr) {
                     foreach ($homework['video'] as $k => $video) {
                         if ($video['image'] && is_array($video['image'])) {
@@ -178,11 +235,18 @@ class PcrController extends Controller
                                 }
                             }
                         }
+                        if ($tid) {
+                            $ok = DB::table('team_titles')->where(['team_id' => $tid, 'title' => $video['text']])->exists();
+                            if (!$ok) {
+                                $team_titles_map[] = $video['text'];
+                            }
+                        } else {
+                            $team_titles_map[] = $video['text'];
+                        }
                     }
                     $homeworkInfo['link'] = json_encode($homework['video']);
                 }
                 if ($type == 1) { // 写入
-                    $tid = DB::table('teams')->where('sn', $homeworkInfo['sn'])->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', Carbon::now()->month)->value('id');
                     if ($tid) { // 有值修改
                         $homeworkInfo['updated_at'] = Carbon::now();
                         DB::table('teams')->where('id', $tid)->update($homeworkInfo);
@@ -193,16 +257,27 @@ class PcrController extends Controller
                 }
                 if ($type == 2) { // 修改
                     $homeworkInfo['updated_at'] = Carbon::now();
-                    $tid = DB::table('teams')->where('sn', $sn)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', Carbon::now()->month)->value('id');
                     DB::table('teams')->where('id', $tid)->update($homeworkInfo);
 
                     // 判断是否需要修改角色
-                    $roles = $homework['unit'];
+                    $roles    = $homework['unit'];
                     $oldRoles = json_decode($oldJsonStr, 1)['unit'];
                     if ($roles != $oldRoles) {
                         $type = 1;
                     }
                 }
+
+                // 记录作业标题
+                if ($team_titles_map) {
+                    $send             = true;
+                    $insertTeamTitles = [];
+                    foreach ($team_titles_map as $k => $text) {
+                        $emailTeam[] = ['sn' => $sn, 'title' => $text];
+                        $insertTeamTitles[] = ['team_id' => $tid, 'title' => $text, 'created_at' => Carbon::now()];
+                        DB::table('team_titles')->insert($insertTeamTitles);
+                    }
+                }
+
                 if ($type == 1) {
                     $insertTeamRoles = [];
                     foreach ($homework['unit'] as $kkk => $val) {
@@ -219,14 +294,27 @@ class PcrController extends Controller
             }
 
             Cache::put($sn, $jsonStr, 7200);
+            Cache::put('data_huawu', '');
         }
 
-
+        if ($send) {
+            $customMailer = new CustomMailer;
+            $html = '<h1>您有新的作业</h1></br>';
+            $sn_map = [];
+            foreach ($emailTeam as $key => $value) {
+                if (!in_array($value['sn'], $sn_map)) {
+                    $sn_map[] = $value['sn'];
+                    $html .= '<h3>' . $value['sn'] . '</h3>';   
+                }
+                $html .= '<p>' . $value['title'] . '</p>';
+            }
+            $html .= '<a href="' . url('/') . '">点击前往分刀工具</a>';
+            $emails = User::where(['status' => 1, 'is_subscribe' => 1])->pluck('email');
+            foreach ($emails as $key => $email) {
+                $customMailer->send($email, '公主连结分刀工具', $html);
+            }
+        }
         return 'Success';
-
-        dd('Success');
-
-
     }
 
     private function getApiUrl($url, $headerArray = [])
@@ -313,25 +401,26 @@ class PcrController extends Controller
     public function aaaa()
     {
 
-        $arr = [1,2,3];
-
-        dd($arr);
+        $a = 'cache1';
+        Cache::put('test_cache', $a);
+        $res = Cache::get('test_cache');
+        dd($res);
 
     }
 
     public function cccc()
     {
-        $url = 'http://pcr.happy0227.asia/aaaa';
-        // $url = 'http://pcr.happy0227.asia/get_this_month_boss_list';
-        // $url = 'http://pcr.happy0227.asia/user/account/get_team_groups?id=3';
+        $a = [1,2];
+        $b = [1,1,1];
 
-        for ($i=0; $i < 20; $i++) { 
-            $res = $this->getApiUrl($url);
-            dump($res);
-        }
+        $c = array_intersect($a, $b);
+        $d = array_intersect($b, $a);
 
-        dd('Success');
-        
+
+
+
+        dump($c);
+        dump($d);
     }
 
     public function dddd()
@@ -339,24 +428,28 @@ class PcrController extends Controller
 
         $data = DB::table('accounts')->get()->toArray();
 
+        // dd($data);
+
 
         foreach ($data as $key => $value) {
-            $str = $value->roles;
-            if ($str) {
-                $arr = explode(',', $str);
-
-                $roles = DB::table('roles')->whereIn('role_id_3', $arr)->orWhereIn('role_id_6', $arr)->pluck('role_id');
-
-                $roles = $roles ? $roles->toArray() : [];
-
-                // DB::table('accounts')->where('id', $value->id)->update(['roles' => implode(',', $roles)]);
+            $account = Account::where(['id' => $value->id, 'uid' => $value->uid])->first();
+            $roles = explode(',', $account->roles);
+            if (in_array(101001, $roles)) {
+                unset($roles[array_search(101001, $roles)]);
             }
+            if ($account->fox_switch) {
+                $account->fox_switch = 0;
+            } else {
+                $account->fox_switch = 1;
+                array_push($roles, 101001);
+            }
+            $account->roles = implode(',', $roles);
+            // $account->save();
         }
 
 
         
-
-        dd(33);
+        show_json(1);
         
 
 
