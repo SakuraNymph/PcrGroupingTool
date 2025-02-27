@@ -56,16 +56,17 @@ class TeamInfoService
             usort($data, function($a, $b) {
                 // 逐个比较 role_id
                 for ($i = 4; $i >= 0; $i--) {
-                    $comparison = $a['team_roles'][$i]['role_id'] <=> $b['team_roles'][$i]['role_id'];
-                    if ($comparison !== 0) {
-                        return $comparison; // 如果不相等，返回比较结果
+                    if (isset($a['team_roles'][$i]['role_id']) && isset($b['team_roles'][$i]['role_id'])) {
+                        $comparison = $a['team_roles'][$i]['role_id'] <=> $b['team_roles'][$i]['role_id'];
+                        if ($comparison !== 0) {
+                            return $comparison; // 如果不相等，返回比较结果
+                        }
                     }
                 }
 
                 return 0; // 如果所有 role_id 相同，返回 0
             });
         }
-// return $data;
         foreach ($data as $key => $teamInfo) {
             $data[$key]['has_add'] = 0;
             $data[$key]['link'] = json_decode(($teamInfo['link']), 1);
@@ -225,6 +226,7 @@ class TeamInfoService
             }
         } else {
             $data_huawu = Cache::get('data_huawu');
+            $data_huawu = [];
             if (empty($data_huawu)) {
                 $data_huawu = team::where(['uid' => 0, 'status' => 1])
                                 ->whereYear('created_at', Carbon::now()->year)
@@ -238,7 +240,7 @@ class TeamInfoService
             foreach ($data_huawu as $key => $value) {
                 $data_huawu_new[$value->id] = $value->link;
             }
-
+            
             // 替换link数据
             foreach ($data as $key => $value) {
                 if ($value['otid']) {
@@ -367,7 +369,6 @@ class TeamInfoService
             }
             $res[] = $temp;
         }
-
         foreach ($res as $key => &$teams) {
             foreach ($teams as $k => $team) {
                 $teams[$k]['link'] = json_decode($team['link'], 1);
@@ -452,45 +453,145 @@ class TeamInfoService
                 }
             }
         }
+
+        // 先找出共用两个角色的两个队伍
+        $two_same_roles_switch = false;
         for ($i=0; $i < 2; $i++) { 
             for ($j=$i+1; $j < 3; $j++) { 
                 if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
                     continue;
                 }
                 $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
-                if (empty($sameRoles)) {
-                    continue;
+                if (count($sameRoles) == 2) {
+                    $two_same_roles_switch = true;
+                    break 2;
                 }
-                if ($teams[$i]['borrow']) {
+            }
+        }
+
+        if ($two_same_roles_switch) {
+            $k = 3 - $i - $j;
+
+            // i&j
+            if (empty($teams[$i]['borrow']) || empty($teams[$j]['borrow'])) {
+                if ($teams[$i]['borrow'] && empty($teams[$j]['borrow'])) {
                     if (in_array($teams[$i]['borrow'], $sameRoles)) {
                         unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
                         if (empty($sameRoles)) {
-                            continue;
+                        } else {
+                            $teams[$j]['borrow'] = current($sameRoles);
+                        }
+                    } else {
+                        $teams[$j]['borrow'] = current($sameRoles);
+                    }
+                } elseif ($teams[$j]['borrow'] && empty($teams[$i]['borrow'])) {
+                    if (in_array($teams[$j]['borrow'], $sameRoles)) {
+                        unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
+                        if (empty($sameRoles)) {
+                        } else {
+                            $teams[$i]['borrow'] = current($sameRoles);
+                        }
+                    } else {
+                        $teams[$i]['borrow'] = current($sameRoles);
+                    }
+                } elseif (empty($teams[$i]['borrow']) && empty($teams[$j]['borrow'])) {
+                    $teams[$i]['borrow'] = current($sameRoles);
+                    $teams[$j]['borrow'] = next($sameRoles);
+                }
+            }
+
+            // i&k
+            if (empty($teams[$i]['borrow']) || empty($teams[$k]['borrow'])) {
+                $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id'));
+                if ($sameRoles) {
+                    if ($teams[$i]['borrow'] && empty($teams[$k]['borrow'])) {
+                        if (in_array($teams[$i]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$k]['borrow'] = current($sameRoles);
+                            }
+                        } else {
+                            $teams[$k]['borrow'] = current($sameRoles);
+                        }
+                    } elseif ($teams[$k]['borrow'] && empty($teams[$i]['borrow'])) {
+                        if (in_array($teams[$k]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$k]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$i]['borrow'] = current($sameRoles);
+                            }
+                        } else {
+                            $teams[$i]['borrow'] = current($sameRoles);
+                        }
+                    } elseif (empty($teams[$i]['borrow']) && empty($teams[$k]['borrow'])) {
+                        $teams[$i]['borrow'] = current($sameRoles);
+                        $teams[$k]['borrow'] = next($sameRoles);
+                    }
+                }
+            }
+
+            // $j&k
+            if (empty($teams[$k]['borrow'])) {
+                $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id'));
+                if ($sameRoles) {
+                    if ($teams[$j]['borrow'] && empty($teams[$k]['borrow'])) {
+                        if (in_array($teams[$j]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$k]['borrow'] = current($sameRoles);
+                            }
+                        } else {
+                            $teams[$k]['borrow'] = current($sameRoles);
+                        }
+                    } elseif (empty($teams[$j]['borrow']) && empty($teams[$k]['borrow'])) {
+                        $teams[$j]['borrow'] = current($sameRoles);
+                        $teams[$k]['borrow'] = next($sameRoles);
+                    }
+                }
+            }
+        } else {
+            for ($i=0; $i < 2; $i++) { 
+                for ($j=$i+1; $j < 3; $j++) { 
+                    if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
+                        continue;
+                    }
+                    $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
+                    if (empty($sameRoles)) {
+                        continue;
+                    }
+                    if ($teams[$i]['borrow']) {
+                        if (in_array($teams[$i]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                                continue;
+                            } else {
+                                $teams[$j]['borrow'] = current($sameRoles);
+                                continue;
+                            }
                         } else {
                             $teams[$j]['borrow'] = current($sameRoles);
                             continue;
                         }
-                    } else {
-                        $teams[$j]['borrow'] = current($sameRoles);
-                        continue;
                     }
-                }
-                if ($teams[$j]['borrow']) {
-                    if (in_array($teams[$j]['borrow'], $sameRoles)) {
-                        unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
-                        if (empty($sameRoles)) {
-                            continue;
+                    if ($teams[$j]['borrow']) {
+                        if (in_array($teams[$j]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                                continue;
+                            } else {
+                                $teams[$i]['borrow'] = current($sameRoles);
+                                continue;
+                            }
                         } else {
                             $teams[$i]['borrow'] = current($sameRoles);
                             continue;
                         }
-                    } else {
-                        $teams[$i]['borrow'] = current($sameRoles);
-                        continue;
                     }
+                    $teams[$i]['borrow'] = current($sameRoles);
+                    $teams[$j]['borrow'] = next($sameRoles);
                 }
-                $teams[$i]['borrow'] = current($sameRoles);
-                $teams[$j]['borrow'] = next($sameRoles);
             }
         }
         return $teams; 
