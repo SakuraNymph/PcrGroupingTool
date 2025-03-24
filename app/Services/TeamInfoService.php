@@ -458,9 +458,9 @@ class TeamInfoService
         $two_same_roles_switch = false;
         for ($i=0; $i < 2; $i++) { 
             for ($j=$i+1; $j < 3; $j++) { 
-                if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
-                    continue;
-                }
+                // if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
+                //     continue;
+                // }
                 $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
                 if (count($sameRoles) == 2) {
                     $two_same_roles_switch = true;
@@ -533,7 +533,7 @@ class TeamInfoService
 
             // $j&k
             if (empty($teams[$k]['borrow'])) {
-                $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id'));
+                $sameRoles = array_intersect(array_column($teams[$j]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id'));
                 if ($sameRoles) {
                     if ($teams[$j]['borrow'] && empty($teams[$k]['borrow'])) {
                         if (in_array($teams[$j]['borrow'], $sameRoles)) {
