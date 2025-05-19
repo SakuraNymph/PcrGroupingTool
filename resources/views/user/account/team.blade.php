@@ -67,10 +67,17 @@
               <div class="layui-form" id="bossList"></div>
               @if($select_is_show)
               <div class="layui-form" id="isAuto">
-                <input type="radio" name="type" value="1" title="自动/半自动" checked>
-                <input type="radio" name="type" value="2" title="手动"> 
+                <input type="radio" name="type" lay-filter="is_auto" value="1" title="自动/半自动" checked>
+                <input type="radio" name="type" lay-filter="is_auto" value="2" title="手动"> 
               </div>
               @endif
+              <div class="layui-form" id="isAuto">
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="0" title="不限" checked>
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="1" title="3物"> 
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="2" title="2物1法"> 
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="3" title="2法1物"> 
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="4" title="3法">
+              </div>
               <div id="show"></div>
           </div>
         </div>
@@ -91,32 +98,43 @@
     var o = layui.$
     ,form = layui.form;
 
-    var id = "{{ $id }}";
-    var type = $('input[name="type"]:checked').val();
+    var id      = "{{ $id }}";
+    var type    = $('input[name="type"]:checked').val();
+    var atk     = $('input[name="atk_type"]:checked').val();
     var bossMap = {row1:0, row2:0, row3:0};
 
     // radio 事件
-    form.on('radio', function(data){
+    form.on('radio(is_auto)', function(data){
       var elem = data.elem; // 获得 radio 原始 DOM 对象
       var checked = elem.checked; // 获得 radio 选中状态
       var value = elem.value; // 获得 radio 值
       var othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
       type = value;
       // layer.msg(['value: '+ value, 'checked: '+ checked].join('<br>'));
-      getTeamGroups(bossMap, type);
+      getTeamGroups(bossMap, type, atk);
     });
 
-    getTeamGroups(bossMap, type);
+    form.on('radio(atk_type)', function(data){
+      var elem = data.elem; // 获得 radio 原始 DOM 对象
+      var checked = elem.checked; // 获得 radio 选中状态
+      var value = elem.value; // 获得 radio 值
+      var othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
+      atk = value;
+      // layer.msg(['value: '+ value, 'checked: '+ checked].join('<br>'));
+      getTeamGroups(bossMap, type, atk);
+    });
+
+    getTeamGroups(bossMap, type, atk);
     getBossList();
 
-    function getTeamGroups(bossMap = {}, type = 0) {
+    function getTeamGroups(bossMap = {}, type = 0, atk = 0) {
       if (id == '0') {
         url = "{{ url('get_team_groups') }}";
         type = 0;
       } else {
         url = "{{ url('user/account/get_team_groups') }}";
       }
-      $.get(url, { row1: bossMap.row1, row2: bossMap.row2, row3: bossMap.row3, id: id, type:type }, function (res) {
+      $.get(url, { row1: bossMap.row1, row2: bossMap.row2, row3: bossMap.row3, id: id, type:type, atk:atk }, function (res) {
         var obj = JSON.parse(res);
         if (obj.status == 1) {
           $('#show').html(''); // 清空容器

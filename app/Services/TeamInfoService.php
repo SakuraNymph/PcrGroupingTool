@@ -171,9 +171,10 @@ class TeamInfoService
      * @param  array   $bossMap   [bossID数组]
      * @param  integer $type      [类型0手动分刀1自动分刀]
      * @param  integer $accountId [账号ID]
+     * @param  integer $atkType   [攻击类型]
      * @return [type]             [结果数据]
      */
-    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0)
+    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0, $atkType = 0)
     {
         if ($type && $accountId) {
             if ($type == 1) {
@@ -208,7 +209,6 @@ class TeamInfoService
 
         $data = $data ? $data->toArray() : [];
         $makeArr = false;
-
         if ($cacheKey) {
             $oldDataJson = Cache::get($cacheKey);
             if (json_encode($data) != $oldDataJson) {
@@ -226,14 +226,13 @@ class TeamInfoService
             }
         } else {
             $data_huawu = Cache::get('data_huawu');
-            $data_huawu = [];
             if (empty($data_huawu)) {
                 $data_huawu = team::where(['uid' => 0, 'status' => 1])
                                 ->whereYear('created_at', Carbon::now()->year)
                                 ->whereMonth('created_at', Carbon::now()->month)
                                 ->orderBy('id')
                                 ->get();
-                Cache::put('data_huawu', $data_huawu);
+                Cache::put('data_huawu', $data_huawu, 1800);
             }
 
             $data_huawu_new = [];
@@ -277,31 +276,72 @@ class TeamInfoService
             $continueSwitch = false;
             
 
+            $gt = 0; // 大于0的数量
+            $lt = 0; // 小于0的数量
             foreach ($teams as $k => $teamInfo) {
                 $teamBossMap[] = $teamInfo['boss'];
+
+                if ($teamInfo['atk_value'] >= 0) {
+                    $gt++;
+                }
+                if ($teamInfo['atk_value'] <= 0) {
+                    $lt++;
+                }
             }
 
-            if ($bossMap) {
-                if ($bossMapNum == 1) { // 只选择一个boss
-                    if (!array_intersect($bossMap, $teamBossMap)) {
+            if ($atkType) {
+                $continueSwitch = true;
+                switch ($atkType) {
+                    case 1:
+                        if ($gt == 3) { // 3物理
+                            $continueSwitch = false;
+                        }
+                        break;
+                    case 2:
+                        if ($gt == 2 && $lt == 1) { // 2物1法 0的情况没考虑
+                            $continueSwitch = false;
+                        }
+                        break;
+                    case 3:
+                        if ($gt == 1 && $lt == 2) { // 2法1物 0的情况没考虑
+                            $continueSwitch = false;
+                        }
+                        break;
+                    case 4:
+                        if ($lt == 3) { // 3魔法
+                            $continueSwitch = false;
+                        }
+                        break;
+                    
+                    default:
                         $continueSwitch = true;
-                    }
+                        break;
                 }
-                if ($bossMapNum == 2) { // 选择两个boss
-                    if ($bossMapCountValues == 1) { // 两个boss相同
-                        if (count(array_intersect($teamBossMap, $bossMap)) < 2) {
+            }
+
+            if (!$continueSwitch) {
+                if ($bossMap) {
+                    if ($bossMapNum == 1) { // 只选择一个boss
+                        if (!array_intersect($bossMap, $teamBossMap)) {
                             $continueSwitch = true;
                         }
                     }
-                    if ($bossMapCountValues == 2) { // 两个boss不同
-                        if (count(array_intersect($bossMap, $teamBossMap)) != 2) {
-                            $continueSwitch = true;
+                    if ($bossMapNum == 2) { // 选择两个boss
+                        if ($bossMapCountValues == 1) { // 两个boss相同
+                            if (count(array_intersect($teamBossMap, $bossMap)) < 2) {
+                                $continueSwitch = true;
+                            }
+                        }
+                        if ($bossMapCountValues == 2) { // 两个boss不同
+                            if (count(array_intersect($bossMap, $teamBossMap)) != 2) {
+                                $continueSwitch = true;
+                            }
                         }
                     }
-                }
-                if ($bossMapNum == 3) { // 选择三个boss
-                    if ($teamBossMap != $bossMap) {
-                        $continueSwitch = true;
+                    if ($bossMapNum == 3) { // 选择三个boss
+                        if ($teamBossMap != $bossMap) {
+                            $continueSwitch = true;
+                        }
                     }
                 }
             }
@@ -445,10 +485,14 @@ class TeamInfoService
      */
     private static function borrowRoles(&$teams = [])
     {
-       foreach ($teams as $key => $teamInfo) {
+        $borrow_switch = false;
+        $borrow_key    = 0;
+        foreach ($teams as $key => $teamInfo) {
             foreach ($teamInfo['team_roles'] as $k => $role) {
                 if ($role['status'] == 0) {
                     $teams[$key]['borrow'] = $role['role_id'];
+                    $borrow_switch = true;
+                    $borrow_key    = $key;
                     break;
                 }
             }
@@ -458,9 +502,6 @@ class TeamInfoService
         $two_same_roles_switch = false;
         for ($i=0; $i < 2; $i++) { 
             for ($j=$i+1; $j < 3; $j++) { 
-                // if ($teams[$i]['borrow'] && $teams[$j]['borrow']) {
-                //     continue;
-                // }
                 $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
                 if (count($sameRoles) == 2) {
                     $two_same_roles_switch = true;
@@ -469,34 +510,45 @@ class TeamInfoService
             }
         }
 
-        if ($two_same_roles_switch) {
-            $k = 3 - $i - $j;
+        if ($two_same_roles_switch || $borrow_switch) {
+            if ($two_same_roles_switch) {
+                $k = 3 - $i - $j;
+            } else {
+                $teamKeys = [0,1,2];
+                $i = $borrow_key;
+                unset($teamKeys[array_search($i, $teamKeys)]);
+                $j = current($teamKeys);
+                $k = next($teamKeys);
+            }
 
             // i&j
             if (empty($teams[$i]['borrow']) || empty($teams[$j]['borrow'])) {
-                if ($teams[$i]['borrow'] && empty($teams[$j]['borrow'])) {
-                    if (in_array($teams[$i]['borrow'], $sameRoles)) {
-                        unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
-                        if (empty($sameRoles)) {
+                $sameRoles = array_intersect(array_column($teams[$i]['team_roles'], 'role_id'), array_column($teams[$j]['team_roles'], 'role_id'));
+                if ($sameRoles) {
+                    if ($teams[$i]['borrow'] && empty($teams[$j]['borrow'])) {
+                        if (in_array($teams[$i]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$i]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$j]['borrow'] = current($sameRoles);
+                            }
                         } else {
                             $teams[$j]['borrow'] = current($sameRoles);
                         }
-                    } else {
-                        $teams[$j]['borrow'] = current($sameRoles);
-                    }
-                } elseif ($teams[$j]['borrow'] && empty($teams[$i]['borrow'])) {
-                    if (in_array($teams[$j]['borrow'], $sameRoles)) {
-                        unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
-                        if (empty($sameRoles)) {
+                    } elseif ($teams[$j]['borrow'] && empty($teams[$i]['borrow'])) {
+                        if (in_array($teams[$j]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$j]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$i]['borrow'] = current($sameRoles);
+                            }
                         } else {
                             $teams[$i]['borrow'] = current($sameRoles);
                         }
-                    } else {
+                    } elseif (empty($teams[$i]['borrow']) && empty($teams[$j]['borrow'])) {
                         $teams[$i]['borrow'] = current($sameRoles);
+                        $teams[$j]['borrow'] = next($sameRoles);
                     }
-                } elseif (empty($teams[$i]['borrow']) && empty($teams[$j]['borrow'])) {
-                    $teams[$i]['borrow'] = current($sameRoles);
-                    $teams[$j]['borrow'] = next($sameRoles);
                 }
             }
 
@@ -532,7 +584,7 @@ class TeamInfoService
             }
 
             // $j&k
-            if (empty($teams[$k]['borrow'])) {
+            if (empty($teams[$j]['borrow']) || empty($teams[$k]['borrow'])) {
                 $sameRoles = array_intersect(array_column($teams[$j]['team_roles'], 'role_id'), array_column($teams[$k]['team_roles'], 'role_id'));
                 if ($sameRoles) {
                     if ($teams[$j]['borrow'] && empty($teams[$k]['borrow'])) {
@@ -544,6 +596,16 @@ class TeamInfoService
                             }
                         } else {
                             $teams[$k]['borrow'] = current($sameRoles);
+                        }
+                    } elseif ($teams[$k]['borrow'] && empty($teams[$j]['borrow'])) {
+                        if (in_array($teams[$k]['borrow'], $sameRoles)) {
+                            unset($sameRoles[array_search($teams[$k]['borrow'], $sameRoles)]);
+                            if (empty($sameRoles)) {
+                            } else {
+                                $teams[$j]['borrow'] = current($sameRoles);
+                            }
+                        } else {
+                            $teams[$j]['borrow'] = current($sameRoles);
                         }
                     } elseif (empty($teams[$j]['borrow']) && empty($teams[$k]['borrow'])) {
                         $teams[$j]['borrow'] = current($sameRoles);
@@ -651,9 +713,9 @@ class TeamInfoService
                         continue;
                     }
                     $teamsRes[] = [
-                        ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score']],
-                        ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score']],
-                        ['dataKey' => $k, 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score']]
+                        ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score'], 'atk_value' => $data[$i]['atk_value']],
+                        ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score'], 'atk_value' => $data[$j]['atk_value']],
+                        ['dataKey' => $k, 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score'], 'atk_value' => $data[$k]['atk_value']]
                     ];
                 }
             }

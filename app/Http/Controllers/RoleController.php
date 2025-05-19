@@ -51,6 +51,20 @@ class RoleController extends Controller
                 $params['is_ghz'] = (int)$request->input('is_ghz');
             }
 
+            // 实装状态
+            if ($request->input('status') != '') {
+
+                $not = (int)$request->input('status') ? 'not' : '';
+                $condition .= ' and name IS ' . $not . ' NULL';
+            }
+
+            // 攻击类型
+            if ($request->input('atk_type') != '') {
+
+                $condition .= ' and atk_type = :atk_type';
+                $params['atk_type'] = (int)$request->input('atk_type');
+            }
+
             $list = DB::select('SELECT *, IF(`is_6` = 1, `role_id_6`, `role_id_3`) as `role_id` from `roles` where 1 ' . $condition . ' order by `id` limit ' . ($pindex - 1) * $psize . ',' . $psize, $params);
 
             $count = DB::select('SELECT count(1) as num from `roles` where 1 ' . $condition, $params);
@@ -112,6 +126,21 @@ class RoleController extends Controller
             if ($role) {
                 $magicAtk = (int)$role->magic_atk;
                 $role->magic_atk = 1 - $magicAtk;
+                $role->save();
+            }
+        }
+        $this->show_json();
+    }
+
+    public function changeAtkType(Request $request)
+    {
+        $id = (int)$request->input('id');
+        if ($id) {
+            // 修改单条数据状态
+            $role = Role::find($id);
+            if ($role) {
+                $atkType = (int)$role->atk_type;
+                $role->atk_type = $atkType - 1;
                 $role->save();
             }
         }

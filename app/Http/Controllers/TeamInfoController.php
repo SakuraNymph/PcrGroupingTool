@@ -255,7 +255,8 @@ class TeamInfoController extends Controller
         $row1     = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
         $row2     = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
         $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
-        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3]);
+        $atkType  = (int)$request->input('atk') ?? 0;
+        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], 0, 0, $atkType);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 
@@ -265,7 +266,7 @@ class TeamInfoController extends Controller
         $roles = Cache::get('roles');
         if (empty($roles)) {
             // 角色
-            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `role_id`, `position`, `nickname` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('role_id')->get();
+            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `role_id`, `position`, `name` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('role_id')->get();
             $roles = $roles ? $roles->toArray() : [];
             Cache::put('roles', $roles, 7200);
         }
@@ -282,7 +283,7 @@ class TeamInfoController extends Controller
             if (in_array($value->role_id, $teamRoles)) {
                 $switch = 1;
             }
-            $rolesMap[$value->position][] = ['role_id' => $value->role_id, 'image_id' => $value->image_id, 'switch' => $switch, 'nickname' => $value->nickname];
+            $rolesMap[$value->position][] = ['role_id' => $value->role_id, 'image_id' => $value->image_id, 'switch' => $switch, 'name' => $value->name];
         }
         return json_encode(['status' => 1, 'result' => $rolesMap]);
     }

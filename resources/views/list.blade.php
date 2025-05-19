@@ -16,12 +16,27 @@
                     </div>
                 </div>
 
-                <div class="layui-col-md3">
+                <div class="layui-col-md1">
                     <div class="layui-input-inline">
                     </div>
                 </div>
 
                 <form class="layui-form layui-form-pane" action="">
+                          <div class="layui-col-md1">
+                            <select name="status" lay-search>
+                              <option value="">状态</option>
+                              <option value="0">未实装</option>
+                              <option value="1">已实装</option>
+                            </select>
+                          </div>
+                          <div class="layui-col-md1">
+                            <select name="atk_type" lay-search>
+                              <option value="">攻击类型</option>
+                              <option value="-1">魔法</option>
+                              <option value="0">辅助</option>
+                              <option value="1">物理</option>
+                            </select>
+                          </div>
                           <div class="layui-col-md1">
                             <select name="position" lay-search>
                               <option value="">位置</option>
@@ -87,6 +102,13 @@ layui.config({
          ,{field:'role_id', title:'缩略图', align: 'center', minWidth: 120, templet: function(data) {
             return '<img style="height:50px" src="/images/'+ data.role_id +'.webp" title='+ data.role_id +'  class="layui-upload-img">';
           }}
+          ,{field:'atk_type', title:'输出类型', align: 'center', templet: function(data) {
+          if (data.atk_type) {
+            return '<input type="checkbox" lay-event="atk_type" switchId='+data.id+' checked name="atk_type" lay-skin="switch" lay-filter="atk_type" lay-text="物理|魔法">';
+          } else {
+            return '<input type="checkbox" lay-event="atk_type" switchId='+data.id+' name="atk_type" lay-skin="switch" lay-filter="atk_type" lay-text="物理|魔法">';
+          }
+        }}
           ,{field:'magic_atk', title:'输出角色', align: 'center', templet: function(data) {
           if (data.magic_atk) {
             return '<input type="checkbox" lay-event="magic_atk" switchId='+data.id+' checked name="magic_atk" lay-skin="switch" lay-filter="magic_atk" lay-text="是|否">';
@@ -121,6 +143,8 @@ layui.config({
           }
           , where: {
               nickname: data.field.nickname,
+              status: data.field.status,
+              atk_type: data.field.atk_type,
               position: data.field.position,
               is_6: data.field.is_6,
               is_ghz: data.field.is_ghz
@@ -138,6 +162,23 @@ layui.config({
     });
 
     $.post("{{ url('is_6') }}", {id: obj.elem.getAttribute('switchId')}, function(res) {
+      var obj = JSON.parse(res);
+      if (obj.status) {
+      } else {
+        layer.msg(obj.result.message);
+      }
+    });
+  });
+
+  form.on('switch(atk_type)', function(obj){
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+    $.post("{{ url('change_atk_type') }}", {id: obj.elem.getAttribute('switchId')}, function(res) {
       var obj = JSON.parse(res);
       if (obj.status) {
       } else {

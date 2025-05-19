@@ -18,20 +18,68 @@ use Illuminate\Support\Facades\Validator;
 class AccountController extends Controller
 {
     public $ds_coin = [
-        181031,106931,123031,180931,
-        118131,180831,106731,118531,
-        180731,180331,180631,180131,
-        106831,180231,180531,180431,
-        107031,106131,107131,120731,
-        120931,119931,117731,118031,
-        117231,117031,115531,111831,
-        115031,114431,113931,113431,
-        113131,112531,112431,112031,
-        111931,111531,109931,109731,
-        111131,110431,110631,110331,
-        110031,109131,108831,108731,
-        108431,108631,108131,108331,
-        107931,107731,107831,107531
+        126431,
+        118231,
+        181031,
+        106931,
+        123031,
+        180931,
+        118131,
+        180831,
+        106731,
+        118531,
+        180731,
+        180331,
+        180631,
+        180131,
+        106831,
+        180231,
+        180531,
+        180431,
+        107031,
+        106131,
+        107131,
+        122531,
+        121531,
+        121031,
+        121131,
+        120731,
+        120931,
+        119931,
+        117731,
+        118031,
+        117231,
+        117031,
+        115531,
+        111831,
+        115031,
+        114431,
+        113931,
+        113431,
+        113131,
+        112531,
+        112431,
+        112031,
+        111931,
+        111531,
+        109931,
+        109731,
+        111131,
+        110431,
+        110631,
+        110331,
+        110031,
+        109131,
+        108831,
+        108731,
+        108431,
+        108631,
+        108131,
+        108331,
+        107931,
+        107731,
+        107831,
+        107531
     ];
     public function list(Request $request)
     {
@@ -263,15 +311,16 @@ class AccountController extends Controller
 
     public function getTeamGroups(Request $request)
     {
-        $uid      = Auth::guard('user')->id();
-        $id       = (int)$request->input('id');
-        $type     = (int)$request->input('type') ?? 1;
+        $uid     = Auth::guard('user')->id();
+        $id      = (int)$request->input('id');
+        $type    = (int)$request->input('type') ?? 1;
+        $atkType = (int)$request->input('atk') ?? 0;
 
         $row1     = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
         $row2     = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
         $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
 
-        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], $type, $id);
+        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], $type, $id, $atkType);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 }

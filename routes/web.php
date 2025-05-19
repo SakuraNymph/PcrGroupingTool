@@ -95,6 +95,9 @@ Route::middleware('auth:admin')->group(function () {
 	// 角色列表页面
 	Route::get('list', [App\Http\Controllers\RoleController::class, 'list']);
 
+	// 修改角色攻击类型接口
+	Route::post('change_atk_type', [App\Http\Controllers\RoleController::class, 'changeAtkType']);
+
 	Route::get('admin/team/get_boss_images', [App\Http\Controllers\AdminTeamController::class, 'getBossImages']);
 	Route::get('admin/team/get_boss_list', [App\Http\Controllers\AdminTeamController::class, 'getBossList']);
 
@@ -216,4 +219,6 @@ Route::get('cccc', [App\Http\Controllers\PcrController::class, 'cccc']);
 
 Route::get('dddd', [App\Http\Controllers\PcrController::class, 'dddd']);
 
-Route::get('eeee', [App\Http\Controllers\RankController::class, 'aaaa']);
+Route::get('eeee', [App\Http\Controllers\PcrController::class, 'eeee']);
+
+Route::get('aabb', [App\Http\Controllers\PcrController::class, 'aabb']);
