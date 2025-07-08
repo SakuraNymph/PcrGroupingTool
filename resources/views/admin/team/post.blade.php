@@ -259,7 +259,7 @@
         if (Array.isArray(data[key])) {
           for(const k in data[key]) {
             if (data[key][k].switch == 1) {
-              let src ="{{ asset('images') }}" + '/' + data[key][k].role_id +".webp";
+              let src ="{{ asset('images') }}" + '/' + data[key][k].image_id +".webp";
               html += "<img id='img"+data[key][k].role_id+"' src='"+src+"'>";
               ids.push({role_id:data[key][k].role_id,status:1});
             }
@@ -274,9 +274,9 @@
       for(const value of data) {
         html += '<div class="container">';
         if (value.switch == 1) {
-          html += "<img class='role' val="+ value.role_id +" id=" + 'role' + value.role_id +" title="+ value.nickname +" alt="+ value.nickname +" style='opacity: 1;' switch='1' src=" + "{{ asset('images') }}" + '/' + value.role_id +".webp>";
+          html += "<img class='role' val="+ value.role_id +" id=" + 'role' + value.role_id +" title="+ value.name +" alt="+ value.name +" style='opacity: 1;' switch='1' src=" + "{{ asset('images') }}" + '/' + value.image_id +".webp>";
         } else {
-          html += "<img class='role' val="+ value.role_id +" id=" + 'role'+ value.role_id +" title="+ value.nickname +" alt="+ value.nickname +" switch='0' src=" + "{{ asset('images') }}" + '/' + value.role_id +".webp>";
+          html += "<img class='role' val="+ value.role_id +" id=" + 'role'+ value.role_id +" title="+ value.name +" alt="+ value.name +" switch='0' src=" + "{{ asset('images') }}" + '/' + value.image_id +".webp>";
         }
         html += '<div class="text-overlay"></div></div>';
       }

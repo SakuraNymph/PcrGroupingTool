@@ -42,7 +42,7 @@ class User extends Authenticatable
     {
         $exists = self::where('ip', $ip)->exists();
         if (!$exists) {
-            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0]);
+            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0, 'sub_start' => '00:00:00', 'sub_end' => '23:59:59']);
         }
         $user_info = self::where('ip', $ip)->first();
         $user_info = $user_info ? $user_info->toArray() : [];

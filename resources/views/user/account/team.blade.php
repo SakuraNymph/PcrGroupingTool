@@ -74,8 +74,8 @@
               <div class="layui-form" id="isAuto">
                 <input type="radio" name="atk_type" lay-filter="atk_type" value="0" title="不限" checked>
                 <input type="radio" name="atk_type" lay-filter="atk_type" value="1" title="3物"> 
-                <input type="radio" name="atk_type" lay-filter="atk_type" value="2" title="2物1法"> 
-                <input type="radio" name="atk_type" lay-filter="atk_type" value="3" title="2法1物"> 
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="2" title="2物"> 
+                <input type="radio" name="atk_type" lay-filter="atk_type" value="3" title="2法"> 
                 <input type="radio" name="atk_type" lay-filter="atk_type" value="4" title="3法">
               </div>
               <div id="show"></div>

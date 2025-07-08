@@ -52,6 +52,20 @@ body {
         .layui-tab .layui-tab-title li {
           min-width: 40px;
         }
+        .fixed-btn {
+            position: fixed;  /* 固定定位 */
+            bottom: 30%;      /* 距离底部10% */
+            right: 10%;       /* 距离右侧10% */
+            padding: 10px 20px;
+            background-color: #007bff;  /* 按钮背景色 */
+            color: white;             /* 按钮文本颜色 */
+            border: none;             /* 去除边框 */
+            border-radius: 5px;       /* 圆角 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+            cursor: pointer;          /* 鼠标悬停时显示指针 */
+            font-size: 16px;           /* 字体大小 */
+            z-index: 1000;             /* 确保按钮在其他元素上方 */
+        }
 
 
 
@@ -73,6 +87,11 @@ body {
           <li lay-id="3">E3</li>
           <li lay-id="4">E4</li>
           <li lay-id="5">E5</li>
+          <li lay-id="6">B1</li>
+          <li lay-id="7">B2</li>
+          <li lay-id="8">B3</li>
+          <li lay-id="9">B4</li>
+          <li lay-id="10">B5</li>
         </ul>
         <div class="layui-tab-content">
           <div class="layui-tab-item layui-show">
@@ -91,6 +110,7 @@ body {
           <div class="layui-btn-container">
             <!-- <button type="button" id="del" class="layui-btn layui-bg-red" data-action="del">一键删除</button> -->
             <!-- <button type="button" id="res" class="layui-btn layui-bg-blue" data-action="res">一键分刀</button> -->
+            <button type="button" id="res" class="layui-btn layui-bg-blue" data-action="res">一键分刀</button>
             <button type="button" id="add" class="layui-btn layui-bg-blue" data-action="add">添加作业</button>
           </div>
       </div>
@@ -137,9 +157,15 @@ body {
     });
   });
 
-
   $('button[data-action=res]').click(function() {
-    location.href ='{{ url("res_team") }}';
+    var url = "{{ url('/res_team') }}";
+      layer.open({
+        type: 2
+        ,title: '分刀'
+        ,content: url
+        ,maxmin: true
+        ,area: ['100%', '100%'] 
+      });
   });
   $('button[data-action=del]').click(function() {
       layer.confirm('确定要清空所有作业吗?', {icon: 3, title: '删除'}, function(index) {
@@ -185,7 +211,14 @@ layui.use(function(){
         const data = obj.result;
         let html = '<div class="layui-col-md12"><div class="layui-card"><div class="layui-card-body">';
         for (let key in data) {
-          html += '<fieldset class="layui-elem-field"><div class="container"><div class="header"><h1>E' + data[key].boss + '</h1>';
+          html += '<fieldset class="layui-elem-field"><div class="container"><div class="header">';
+          if (data[key].stage == 2) {
+            html += '<h1>B' + data[key].boss + '</h1>';
+          }
+          if (data[key].stage == 5) {
+            html += '<h1>E' + data[key].boss + '</h1>';
+          }
+
           if (data[key].open) {
             html += '<h5>公开</h5>';
           } else {
@@ -196,15 +229,27 @@ layui.use(function(){
           } else {
             html += '<h5>特殊</h5>';
           }
-          html += '<h2>预估伤害：' + data[key].score + '</h2></div><div class="images">';
+          html += '<h2>预估伤害：' + data[key].score + '</h2>';
+          // 根据自动/手动设置显示相应的标签
+          if (data[key].auto == 1) {
+              html += '<h2>(半)auto</h2>'; // 半自动
+          }
+          if (data[key].auto == 2) {
+              html += '<h2>手动</h2>'; // 手动
+          }
+
+          html += '</div><div class="images">';
           for (let k in data[key].team_roles) {
             if (data[key].team_roles[k].status == 1) {
-              html += '<img src="' + '{{ asset('images') }}' + '/' + data[key].team_roles[k].role_id + '.webp" alt="图片">';
+              html += '<img src="' + '{{ asset('images') }}' + '/' + data[key].team_roles[k].image_id + '.webp" alt="图片">';
             } else {
-              html += '<img src="' + '{{ asset('images') }}' + '/' + data[key].team_roles[k].role_id + '.webp" alt="图片" style="opacity:0.6;">';
+              html += '<img src="' + '{{ asset('images') }}' + '/' + data[key].team_roles[k].image_id + '.webp" alt="图片" style="opacity:0.6;">';
             }
           }
           html += '<div class="layui-btn-group">';
+          if (data[key].open == 0) {
+            html += '<div class="buttons"><button type="button" class="layui-btn layui-btn-fluid layui-btn-sm" data-action="open" val="' + data[key].id + '">不公开</button></div>';
+          } 
           if (data[key].open == 1) {
             html += '<div class="buttons"><button type="button" class="layui-btn layui-btn-fluid layui-btn-sm" data-action="open" val="' + data[key].id + '">待审核</button></div>';
           }  
@@ -215,7 +260,17 @@ layui.use(function(){
           html += '<div class="buttons"><button type="button" class="layui-btn layui-btn-fluid layui-btn-sm layui-bg-orange" data-action="edit" val="' + data[key].id + '">修改</button></div>';
           html += '</div>';
           
-          html += '</div><div class="description"><p>' + data[key].remark + '</p></div></div></fieldset>';
+          html += '</div><div class="description"><p>' + data[key].remark + '</p></div></div>';
+
+          html += '<div class="buttonContainer">';
+          for (let k in data[key].link) {
+              html += '<button class="layui-btn layui-btn-xs layui-btn-primary layui-border-blue" data-url="' + data[key].link[k].url + '" data-image=' + data[key].link[k].image + ' data-note="' + data[key].link[k].note + '">' + data[key].link[k].text + '</button>';
+          }
+          html += '</div>'; // 结束按钮容器
+
+          // 添加可展开内容区域
+          html += '<div class="contentArea" style="margin-top: 20px; display: none;"></div>';
+          html += '</fieldset>'; // 结束 fieldset
         }
         html += '</div></div></div>';
         $('.layui-show').html(html);
@@ -281,6 +336,48 @@ layui.use(function(){
         submit.click();
       }
     });
+  });
+  $('.layui-tab-item').on('click', 'button', function () {
+    var url   = $(this).data('url'); // 获取按钮关联的内容
+    var image = $(this).data('image'); // 获取按钮关联的内容
+    var note  = $(this).data('note'); // 获取按钮关联的内容
+
+    // console.log(image[0].source);
+    // return false;
+    var $contentArea = $(this).closest('.buttonContainer').next('.contentArea');
+
+    let html = '';
+    html += '<h2>链接：</h2>';
+    if (url) {
+      html += '<a href="' + url + '" target="_blank">点击查看</a>';
+    } else {
+      html += '无';
+    }
+    html += '</br>';
+    html += '<h2>图片：</h2>';
+    if (image) {
+      for (let k in image) {
+        // console.log(image[k].source);
+        html += '<img src="' + image[k].url + '" alt="" style="width:100%">';
+      }
+    } else {
+      html += '无';
+    }
+    html += '</br>';
+    html += '<h2>备注：</h2>';
+    if (note) {
+      html += '<span>' + note + '</span>';
+    } else {
+      html += '无';
+    }
+
+    // 如果内容区域是可见的，并且当前内容与按钮关联的内容相同，则隐藏
+    if ($contentArea.is(':visible')) {
+        $contentArea.hide();
+    } else {
+        // 更新内容并显示
+        $contentArea.html(html).show();
+    }
   });
 
   getTeams(bossId);

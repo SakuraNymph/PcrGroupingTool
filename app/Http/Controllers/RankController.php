@@ -8,9 +8,11 @@ use App\Models\RankInfo;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RankService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 
 class RankController extends Controller
@@ -332,14 +334,33 @@ class RankController extends Controller
 
     public function subscribe(Request $request)
     {
-        $uid = Auth::guard('user')->id();
+        $uid    = Auth::guard('user')->id();
         $status = User::where('id', $uid)->value('is_subscribe');
+        $start  = User::where('id', $uid)->value('sub_start');
+        $end    = User::where('id', $uid)->value('sub_end');
         if ($request->method() == 'POST') {
-            User::where('id', $uid)->update(['is_subscribe' => ( 1 - (int)$status )]);
-            $msg = $status ? '关闭成功' : '开启成功';
+            
+            $msg  = $status ? '关闭成功' : '开启成功';
+            $time = $request->input('data');
+            if ($time) {
+                list($start, $end) = explode(' - ', $time);
+                $validator = Validator::make(['start_time' => $start, 'end_time' => $end], [
+                    'start_time' => 'required|date_format:H:i:s',
+                    'end_time' => 'required|date_format:H:i:s|after:start_time',
+                ]);
+                if ($validator->fails()) {
+                    $start = '00:00:00';
+                    $end   = '23:59:59';
+                }
+            } else {
+                $start = '00:00:00';
+                $end   = '23:59:59';
+            }
+
+            User::where('id', $uid)->update(['is_subscribe' => ( 1 - (int)$status ), 'sub_start' => $start, 'sub_end' => $end]);
             return json_encode(['msg' => $msg]);
         }
-        return view('subscribe', ['status' => $status]);
+        return view('subscribe', ['status' => $status, 'start' => $start, 'end' => $end]);
     }
 
     

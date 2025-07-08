@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 class AccountController extends Controller
 {
     public $ds_coin = [
+        126531,
         126431,
         118231,
         181031,
@@ -39,6 +40,8 @@ class AccountController extends Controller
         107031,
         106131,
         107131,
+        123331,
+        122931,
         122531,
         121531,
         121031,

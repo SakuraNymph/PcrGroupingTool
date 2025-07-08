@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\TeamRole;
+use App\Models\UserTeam;
 use App\Services\TeamInfoService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -64,7 +65,7 @@ class TeamInfoController extends Controller
         }
         $teamId = (int)$request->input('id');
         $roleId = (int)$request->input('role_id');
-        $ok     = (int)TeamInfoService::addOtherTeam($uid, $teamId, $roleId);
+        $ok     = TeamInfoService::addOtherTeam($uid, $teamId, $roleId);
         if ($ok) {
             $cacheKey = 'group' . $uid;
             Cache::put($cacheKey, []);
@@ -169,6 +170,12 @@ class TeamInfoController extends Controller
 
             $this->addUseTimes($role_ids);
 
+            $atk_value = 0;
+            foreach ($teams as $key => $value) {
+                $atk_type = (int)DB::table('roles')->where('role_id', $value['role_id'])->value('atk_type');
+                $atk_value += $atk_type;
+            }
+
             $insert_teams = [
                 'uid'        => $uid,
                 'boss'       => $boss_num,
@@ -176,16 +183,17 @@ class TeamInfoController extends Controller
                 'open'       => $open,
                 'auto'       => $auto,
                 'status'     => 1,
+                'stage'      => 5,
+                'atk_value'  => $atk_value,
                 'remark'     => $remark,
-                'created_at' => timeToStr(),
-                'updated_at' => timeToStr(),
+                'created_at' => timeToStr()
             ];
-            $team_id = DB::table('teams')->insertGetId($insert_teams);
+            $team_id = DB::table('user_teams')->insertGetId($insert_teams);
             if (!$team_id) {
                 show_json(0, 'Error');
             }
-            $insert_team_roles = [];
 
+            $insert_team_roles = [];
             foreach ($teams as $key => $value) {
                 $insert_team_roles[] = ['team_id' => $team_id, 'role_id' => $value['role_id'], 'status' => $value['status']];
             }
@@ -257,6 +265,7 @@ class TeamInfoController extends Controller
         $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
         $atkType  = (int)$request->input('atk') ?? 0;
         $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], 0, 0, $atkType);
+        
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 
@@ -322,13 +331,16 @@ class TeamInfoController extends Controller
             $uid = session('id');
         }
         $where = $type ? ['otid' => $id] : ['id' => $id];
-        $ok    = DB::table('teams')->where($where)->where('uid', $uid)->update(['status' => 0]);
-        if ($ok) {
-            // DB::commit();
+        $where['uid'] = $uid;
+
+        $teamInfo = UserTeam::where($where)->first();
+        if (!$teamInfo) {
             show_json(1);
         }
-        // DB::rollBack();
-        show_json(0);
+        $teamInfo->status = 0;
+        $teamInfo->save();
+        TeamRole::where('team_id', $teamInfo->id)->delete();
+        show_json(1);
     }
 
     /**

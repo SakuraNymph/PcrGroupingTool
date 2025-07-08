@@ -5,16 +5,19 @@
 <style type="text/css">
 
 .container {
-    display: flex;
-    flex-wrap: wrap; /* 允许换行 */
+    display: grid;
+    grid-template-columns: repeat(6, 140px); /* 每行 6 个，固定宽度 */
+    justify-content: center; /* 居中整个 grid */
+    gap: 10px 10px; /* 行列间距 */
+    margin: 0 auto; /* 居中容器 */
 }
 .item {
-    width: 90px;
-    height: 50px;
+    width: 140px;
+    height: 60px;
     display: flex;
     align-items: center;
     margin-right: 10px;
-    margin-bottom: 5px; /* 调整上下两个div的间距 */
+    margin-bottom: 10px; /* 调整上下两个div的间距 */
     padding: 5px;
 }
 .item img {
@@ -29,7 +32,7 @@
     height: 100%;
 }
 .details div {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1; /* 调整同一个div内的三行文字间距 */
 }
 .red {
@@ -48,7 +51,6 @@
 h1 {
   text-align: center; /* 水平居中对齐 */
 }
-
 
 
 
