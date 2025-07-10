@@ -214,12 +214,14 @@ class TeamInfoService
                     $where = ['stage' => 2, 'open' => 0];
                 }
             }
+            $model = \App\Models\Team::class;
         } else {
             $cacheKey = '';
             $where = ['uid' => $uid];
+            $model = \App\Models\UserTeam::class;
         }
 
-        $data = Team::with(['teamRoles' => function ($query) {
+        $data = $model::with(['teamRoles' => function ($query) {
             $query->join('roles', function($join) {
                 $join->on('roles.role_id', '=', 'team_roles.role_id');
             })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');

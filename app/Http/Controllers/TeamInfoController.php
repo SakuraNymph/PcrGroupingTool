@@ -362,13 +362,15 @@ class TeamInfoController extends Controller
 
         if ($type == 1) { // 用户添加
             $where = ['uid' => $uid, 'status' => 1];
+            $model = \App\Models\UserTeam::class;
         }
 
         if ($type == 2) { // 作业网数据
-            $where = ['uid' => 0, 'status' => 1, 'open' => 2];
+            $where = ['uid' => 0, 'status' => 1];
+            $model = \App\Models\Team::class;
         }
 
-        $num = Team::where($where)
+        $num = $model::where($where)
                     ->whereYear('created_at', Carbon::now()->year)
                     ->whereMonth('created_at', Carbon::now()->month)->count();
         return $num;

@@ -1,6 +1,9 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
 ## 演示地址 http://pcr.saololi.asia/
 
+### 2025.07.11
+v0.5.2 作业订阅新增自定义提醒时段功能
+
 ### 2025.05.19
 v0.5.1 新增分刀物理魔法筛选
 
