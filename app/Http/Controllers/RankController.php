@@ -339,9 +339,9 @@ class RankController extends Controller
         $start  = User::where('id', $uid)->value('sub_start');
         $end    = User::where('id', $uid)->value('sub_end');
         if ($request->method() == 'POST') {
-            
-            $msg  = $status ? '关闭成功' : '开启成功';
-            $time = $request->input('data');
+
+            $time = $request->input('time');
+
             if ($time) {
                 list($start, $end) = explode(' - ', $time);
                 $validator = Validator::make(['start_time' => $start, 'end_time' => $end], [
@@ -352,12 +352,12 @@ class RankController extends Controller
                     $start = '00:00:00';
                     $end   = '23:59:59';
                 }
+                User::where('id', $uid)->update(['sub_start' => $start, 'sub_end' => $end]);
+                $msg = '修改成功';
             } else {
-                $start = '00:00:00';
-                $end   = '23:59:59';
+                User::where('id', $uid)->update(['is_subscribe' => ( 1 - (int)$status )]);
+                $msg  = $status ? '关闭成功' : '开启成功';
             }
-
-            User::where('id', $uid)->update(['is_subscribe' => ( 1 - (int)$status ), 'sub_start' => $start, 'sub_end' => $end]);
             return json_encode(['msg' => $msg]);
         }
         return view('subscribe', ['status' => $status, 'start' => $start, 'end' => $end]);
@@ -430,10 +430,8 @@ class RankController extends Controller
         dump('IP:' . $ip);
     }
 
-    public function aaaa()
+    public function server()
     {
-        $res = RankService::testCache();
-
-        dd($res);
+        dd(6666);
     }
 }
