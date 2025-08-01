@@ -432,6 +432,6 @@ class RankController extends Controller
 
     public function server()
     {
-        dd(6666);
+        dd(3333);
     }
 }
