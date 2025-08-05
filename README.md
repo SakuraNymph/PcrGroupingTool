@@ -1,6 +1,9 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
 ## 演示地址 http://pcr.saololi.asia/
 
+### 2025.07.21
+v0.5.3 一键分刀添加作业锁定  解锁  隐藏功能
+
 ### 2025.07.11
 v0.5.2 作业订阅新增自定义提醒时段功能
 
