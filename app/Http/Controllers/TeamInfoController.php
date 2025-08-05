@@ -260,12 +260,14 @@ class TeamInfoController extends Controller
         if (!$uid) {
             $uid = session('id');
         }
-        $row1     = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
-        $row2     = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
-        $row3     = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
-        $atkType  = (int)$request->input('atk') ?? 0;
-        $teamsRes = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], 0, 0, $atkType);
-        
+        $row1      = in_array((int)$request->input('row1'), [1,2,3,4,5]) ? (int)$request->input('row1') : 0;
+        $row2      = in_array((int)$request->input('row2'), [1,2,3,4,5]) ? (int)$request->input('row2') : 0;
+        $row3      = in_array((int)$request->input('row3'), [1,2,3,4,5]) ? (int)$request->input('row3') : 0;
+        $atkType   = (int)$request->input('atk') ?? 0;
+        $lockedIds = is_array($request->input('lockedIds')) ? $request->input('lockedIds') : [];
+        $hiddenIds = is_array($request->input('hiddenIds')) ? $request->input('hiddenIds') : [];
+
+        $teamsRes  = TeamInfoService::getTeamGroups($uid, [$row1, $row2, $row3], 0, 0, $atkType, $lockedIds, $hiddenIds);
         return json_encode(['status' => 1, 'result' => $teamsRes]);
     }
 

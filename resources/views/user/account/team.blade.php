@@ -12,6 +12,9 @@
   display: flex;
   align-items: center;
   margin-bottom: 10px;
+  justify-content: center; /* 让图片在 .group 内水平居中 */
+  gap: 5px;
+  flex-wrap: wrap;  /* 小屏幕时换行 */
 }
 
 .row-label {
@@ -37,17 +40,123 @@
   opacity: 1;
 }
 
-.image-checkbox.selected::after {
-  content: '✓';
-  position: absolute;
-  top: 0;
-  right: 0;
-  font-size: 20px;
-  color: green;
+.image-checkbox {
+    display: inline-block;
+/*    margin: 5px;*/
+    cursor: pointer;
+    transition: filter 0.3s;
+    width: 15%; /* 每行四个图片，留有间距 */
+    margin-bottom: 20px; /* 行间距 */
+    margin-right: 2%; /* 每个图片右边的间距 */
 }
 
+.image-checkbox.checked {
+    filter: none;
+}
+
+.image-checkbox img {
+  display: inline-block;
+  margin: 0 5px; /* 图片间距，可选 */
+  width: 100%;
+  height: auto;
+  opacity:0.5;
+}
+
+#bossList {
+  text-align: center; /* 图片居中 */
+}
+#isAuto {
+  text-align: center; /* 图片居中 */
+}
+
+h5 {
+  text-align: center; /* 水平居中对齐 */
+}
+
+.title-row {
+    display: flex;
+    align-items: center; /* 副标题与标题垂直居中对齐 */
+}
+.group-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+.group-subtitle {
+    font-size: 18px;
+    color: #666;
+    margin-left: 20px; /* 副标题与标题的距离 */
+}
+
+
+
+
+
+.rainbow-border {
+  position: relative;
+  display: flex;     /* 让图片横向排列 */
+  gap: 5px;          /* 图片间距 */
+  border-radius: 12px;
+  overflow: hidden;
+  align-items: center; /* 图片垂直居中 */
+}
+
+.rainbow-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px; /* 边框粗细 */
+  background: linear-gradient(
+    270deg,
+    red,
+    orange,
+    yellow,
+    green,
+    cyan,
+    blue,
+    purple,
+    red
+  );
+  background-size: 300% 300%;
+  border-radius: 12px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderAnimation 5s linear infinite;
+}
+
+@keyframes borderAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.disabled-border::before {
+  display: none;
+}
+
+@media (max-width: 768px) {
+    .rainbow-border img,
+    .image-row > img {
+        width: 50px; /* 移动端更小 */
+    }
+
+    .borrow-text {
+        font-size: 12px;
+    }
+}
+
+
+
+
+
+
 </style>
-<link rel="stylesheet" href="{{ asset('css/team.css') }}" media="all">
+<!-- <link rel="stylesheet" href="{{ asset('css/team.css') }}" media="all"> -->
 @endsection
 @section('content')
 <style type="text/css">
@@ -95,47 +204,50 @@
   }).extend({
     index: 'lib/index' //主入口模块
   }).use(['index', 'form'], function(){
-    var o = layui.$
+    let o = layui.$
     ,form = layui.form;
 
-    var id      = "{{ $id }}";
-    var type    = $('input[name="type"]:checked').val();
-    var atk     = $('input[name="atk_type"]:checked').val();
-    var bossMap = {row1:0, row2:0, row3:0};
+    let id             = "{{ $id }}";
+    let type           = $('input[name="type"]:checked').val();
+    let atk            = $('input[name="atk_type"]:checked').val();
+    let bossMap        = {row1:0, row2:0, row3:0};
+    let lockedIds      = []; // 锁定ID
+    let hiddenIds      = []; // 隐藏ID
+    let selectedImages = {}; // 存储每行选中的图片
 
     // radio 事件
     form.on('radio(is_auto)', function(data){
-      var elem = data.elem; // 获得 radio 原始 DOM 对象
-      var checked = elem.checked; // 获得 radio 选中状态
-      var value = elem.value; // 获得 radio 值
-      var othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
+      let elem = data.elem; // 获得 radio 原始 DOM 对象
+      let checked = elem.checked; // 获得 radio 选中状态
+      let value = elem.value; // 获得 radio 值
+      let othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
       type = value;
       // layer.msg(['value: '+ value, 'checked: '+ checked].join('<br>'));
-      getTeamGroups(bossMap, type, atk);
+      getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
     });
 
     form.on('radio(atk_type)', function(data){
-      var elem = data.elem; // 获得 radio 原始 DOM 对象
-      var checked = elem.checked; // 获得 radio 选中状态
-      var value = elem.value; // 获得 radio 值
-      var othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
+      let elem = data.elem; // 获得 radio 原始 DOM 对象
+      let checked = elem.checked; // 获得 radio 选中状态
+      let value = elem.value; // 获得 radio 值
+      let othis = data.othis; // 获得 radio 元素被替换后的 jQuery 对象
       atk = value;
       // layer.msg(['value: '+ value, 'checked: '+ checked].join('<br>'));
-      getTeamGroups(bossMap, type, atk);
+      getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
     });
 
-    getTeamGroups(bossMap, type, atk);
+    getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
     getBossList();
 
-    function getTeamGroups(bossMap = {}, type = 0, atk = 0) {
+    function getTeamGroups(bossMap = {}, type = 0, atk = 0, lockedIds = [], hiddenIds = []) {
       if (id == '0') {
         url = "{{ url('get_team_groups') }}";
         type = 0;
       } else {
         url = "{{ url('user/account/get_team_groups') }}";
       }
-      $.get(url, { row1: bossMap.row1, row2: bossMap.row2, row3: bossMap.row3, id: id, type:type, atk:atk }, function (res) {
-        var obj = JSON.parse(res);
+      $.get(url, { row1: bossMap.row1, row2: bossMap.row2, row3: bossMap.row3, id: id, type:type, atk:atk, lockedIds:lockedIds, hiddenIds:hiddenIds }, function (res) {
+        let obj = JSON.parse(res);
         if (obj.status == 1) {
           $('#show').html(''); // 清空容器
           const data = obj.result;
@@ -155,6 +267,10 @@
                 html += '<div class="group-subtitle">预估伤害：' + data[key][k].score + '</div></div>';
                 html += '<div class="image-row">';
 
+                const currentId = data[key][k].id;
+                const borderClass = lockedIds.includes(currentId) ? '' : 'disabled-border';
+                html += '<div class="rainbow-border ' + borderClass + '" data-id="' + currentId + '">';
+
                 for (let kk in data[key][k].team_roles) {
                   if (data[key][k].team_roles[kk].status == 1) {
                     html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片">';
@@ -162,6 +278,7 @@
                     html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" style="opacity:0.6;">';
                   }
                 }
+                html += '</div>';
                 
                 html += '<span class="text">借</span>';
                 if (data[key][k].borrow) {
@@ -196,12 +313,81 @@
       });
     }
 
-    let selectedImages = {}; // 存储每行选中的图片
+
+
+    $(document).on('click', '.rainbow-border', function() {
+        const currentId = $(this).data('id');
+
+        // 克隆原始数组，便于后续比较
+        const prevLockedIds = [...lockedIds];
+        const prevHiddenIds = [...hiddenIds];
+
+        layer.open({
+            title: '操作选项',
+            content: '请选择操作',
+            btn: ['锁定', '解锁', '隐藏'],
+            yes: function(index) { // 锁定
+                if (!lockedIds.includes(currentId)) {
+                    if (lockedIds.length >= 2) {
+                        lockedIds.shift();
+                    }
+                    lockedIds.push(currentId);
+                }
+                checkAndRefresh(prevLockedIds, prevHiddenIds);
+                layer.close(index);
+            },
+            btn2: function(index) { // 解锁
+                const idx = lockedIds.indexOf(currentId);
+                if (idx !== -1) {
+                    lockedIds.splice(idx, 1);
+                }
+                checkAndRefresh(prevLockedIds, prevHiddenIds);
+                layer.close(index);
+                return false;
+            },
+            btn3: function(index) { // 隐藏
+                if (!hiddenIds.includes(currentId)) {
+                    hiddenIds.push(currentId);
+                }
+                // 同时从lockedIds移除
+                const idx = lockedIds.indexOf(currentId);
+                if (idx !== -1) {
+                    lockedIds.splice(idx, 1);
+                }
+                checkAndRefresh(prevLockedIds, prevHiddenIds);
+                layer.close(index);
+            }
+        });
+    });
+
+    // 判断两个数组是否变化
+    function arraysEqual(arr1, arr2) {
+        if (arr1.length !== arr2.length) return false;
+        for (let i = 0; i < arr1.length; i++) {
+            if (arr1[i] !== arr2[i]) return false;
+        }
+        return true;
+    }
+
+    // 只在lockedIds 或 hiddenIds 变化时刷新
+    function checkAndRefresh(prevLockedIds, prevHiddenIds) {
+        if (!arraysEqual(prevLockedIds, lockedIds) || !arraysEqual(prevHiddenIds, hiddenIds)) {
+            getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
+        }
+    }
+
+
+
+
+
+
+
+    
 
     // 动态获取并渲染图片
     function getBossList() {
       $.get("{{ url('get_this_month_boss_list') }}", function (res) {
-        var obj = JSON.parse(res);
+        let obj = JSON.parse(res);
         if (obj.status == 1) {
           const data = obj.data;
           let html = '';
@@ -243,7 +429,7 @@
         $(this).addClass('selected');
         bossMap['row' + row] = value;
       }
-      getTeamGroups(bossMap, type);
+      getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
 
     });
 
@@ -251,13 +437,13 @@
 
 
     $('#show').on('click', 'button', function () {
-      var url   = $(this).data('url'); // 获取按钮关联的内容
-      var image = $(this).data('image'); // 获取按钮关联的内容
-      var note  = $(this).data('note'); // 获取按钮关联的内容
+      let url   = $(this).data('url'); // 获取按钮关联的内容
+      let image = $(this).data('image'); // 获取按钮关联的内容
+      let note  = $(this).data('note'); // 获取按钮关联的内容
 
       // console.log(image[0].source);
       // return false;
-      var $contentArea = $(this).closest('.buttonContainer').next('.contentArea');
+      let $contentArea = $(this).closest('.buttonContainer').next('.contentArea');
 
       let html = '';
       html += '<h2>链接：</h2>';

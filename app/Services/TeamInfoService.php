@@ -46,6 +46,8 @@ class TeamInfoService
         $modelMap = [
             1 => \App\Models\Team::class,
             2 => \App\Models\UserTeam::class,
+            3 => \App\Models\Team::class,
+            4 => \App\Models\Team::class,
         ];
 
         $data = $modelMap[$type]::with(['teamRoles' => function ($query) {
@@ -197,7 +199,7 @@ class TeamInfoService
      * @param  integer $atkType   [攻击类型]
      * @return [type]             [结果数据]
      */
-    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0, $atkType = 0)
+    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0, $atkType = 0, $lockedIds = [], $hiddenIds = [])
     {
         if ($type) {
             if ($accountId) {
@@ -207,7 +209,7 @@ class TeamInfoService
                 if ($type == 2) {
                     $cacheKey = 'handTeams';
                 }
-                $where = ['open' => 2, 'auto' => $type];
+                $where = ['auto' => $type, 'stage' => 5];
             } else {
                 if ($type == 3) {
                     $cacheKey = 'bStageTeams';
@@ -265,18 +267,18 @@ class TeamInfoService
                                 ->whereMonth('created_at', Carbon::now()->month)
                                 ->orderBy('id')
                                 ->get();
-                Cache::put('data_huawu', $data_huawu, 1800);
+                Cache::put('data_huawu', $data_huawu, 600);
             }
 
             $data_huawu_new = [];
             foreach ($data_huawu as $key => $value) {
-                $data_huawu_new[$value->id] = $value->link;
+                $data_huawu_new[$value->id] = @$value->link;
             }
             
             // 替换link数据
             foreach ($data as $key => $value) {
                 if ($value['otid']) {
-                    $data[$key]['link'] = $data_huawu_new[$value['otid']];
+                    $data[$key]['link'] = @$data_huawu_new[$value['otid']];
                 }
             }
             $teamsRes = self::makeTeams($data);
@@ -307,7 +309,23 @@ class TeamInfoService
             $roleStatus     = [];
             $teamBossMap    = [];
             $continueSwitch = false;
-            
+            $teamIds = array_column($teams, 'id');
+
+            if ($lockedIds) { // 锁定作业ID
+                if (count(array_intersect($teamIds, $lockedIds)) < count($lockedIds)) {
+                    unset($teamsRes[$key]);
+                    $failNum++;
+                    continue;
+                }
+            }
+
+            if ($hiddenIds) { // 隐藏作业ID
+                if (array_intersect($teamIds, $hiddenIds)) {
+                    unset($teamsRes[$key]);
+                    $failNum++;
+                    continue;
+                }
+            }
 
             $gt = 0; // 大于0的数量
             $lt = 0; // 小于0的数量
@@ -444,10 +462,12 @@ class TeamInfoService
         }
         foreach ($res as $key => &$teams) {
             foreach ($teams as $k => $team) {
-                $teams[$k]['link'] = json_decode($team['link'], 1);
-                if ($teams[$k]['link']) {
-                    foreach ($teams[$k]['link'] as $kk => $link) {
-                        $teams[$k]['link'][$kk]['image'] = json_encode($link['image']);
+                if (isset($teams[$k]['link'])) {
+                    $teams[$k]['link'] = json_decode($team['link'], 1);
+                    if ($teams[$k]['link']) {
+                        foreach ($teams[$k]['link'] as $kk => $link) {
+                            $teams[$k]['link'][$kk]['image'] = json_encode($link['image']);
+                        }
                     }
                 }
             }
@@ -776,9 +796,9 @@ class TeamInfoService
                         continue;
                     }
                     $teamsRes[] = [
-                        ['dataKey' => $i, 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score'], 'atk_value' => $data[$i]['atk_value']],
-                        ['dataKey' => $j, 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score'], 'atk_value' => $data[$j]['atk_value']],
-                        ['dataKey' => $k, 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score'], 'atk_value' => $data[$k]['atk_value']]
+                        ['dataKey' => $i, 'id' => $data[$i]['id'], 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score'], 'atk_value' => $data[$i]['atk_value']],
+                        ['dataKey' => $j, 'id' => $data[$j]['id'], 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score'], 'atk_value' => $data[$j]['atk_value']],
+                        ['dataKey' => $k, 'id' => $data[$k]['id'], 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score'], 'atk_value' => $data[$k]['atk_value']]
                     ];
                 }
             }
