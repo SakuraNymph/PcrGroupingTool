@@ -124,7 +124,7 @@ body {
         headers: {
           'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
-        lineStyle: 'height: 80px;',
+        lineStyle: 'height: 150px;',
         cols: [[
             // {title:'序号', type:'numbers',  width: 80}
            {field:'nickname', title:'昵称', align: 'center', minWidth: 120}
@@ -133,34 +133,35 @@ body {
            // ,{field:'role_id', title:'缩略图', align: 'center', minWidth: 120, templet: function(data) {
            //    return '<img style="height:50px" src="/images/'+ data.role_id +'.webp"  class="layui-upload-img">';
            //  }}
-            ,{field:'fox_level', title:'狐狸练度', align: 'center', templet: function(data) {
-            if (data.fox_level) {
-              if (data.fox_switch) {
-                return '<input type="checkbox" lay-event="fox" switchId='+data.id+' checked name="fox" lay-skin="switch" lay-filter="fox" lay-text="lv'+data.fox_level+'|lv'+data.fox_level+'">';
-              } else {
-                return '<input type="checkbox" lay-event="fox" switchId='+data.id+' name="fox" lay-skin="switch" lay-filter="fox" lay-text="lv'+data.fox_level+'|lv'+data.fox_level+'">';
-              }
-            } else {
-              if (data.fox_switch) {
-                return '<input type="checkbox" lay-event="fox" switchId='+data.id+' checked name="fox" lay-skin="switch" lay-filter="fox" lay-text="满级|满级">';
-              } else {
-                return '<input type="checkbox" lay-event="fox" switchId='+data.id+' name="fox" lay-skin="switch" lay-filter="fox" lay-text="满级|满级">';
-              }
-            }
-          }}
+          //   ,{field:'fox_level', title:'狐狸练度', align: 'center', templet: function(data) {
+          //   if (data.fox_level) {
+          //     if (data.fox_switch) {
+          //       return '<input type="checkbox" lay-event="fox" switchId='+data.id+' checked name="fox" lay-skin="switch" lay-filter="fox" lay-text="lv'+data.fox_level+'|lv'+data.fox_level+'">';
+          //     } else {
+          //       return '<input type="checkbox" lay-event="fox" switchId='+data.id+' name="fox" lay-skin="switch" lay-filter="fox" lay-text="lv'+data.fox_level+'|lv'+data.fox_level+'">';
+          //     }
+          //   } else {
+          //     if (data.fox_switch) {
+          //       return '<input type="checkbox" lay-event="fox" switchId='+data.id+' checked name="fox" lay-skin="switch" lay-filter="fox" lay-text="满级|满级">';
+          //     } else {
+          //       return '<input type="checkbox" lay-event="fox" switchId='+data.id+' name="fox" lay-skin="switch" lay-filter="fox" lay-text="满级|满级">';
+          //     }
+          //   }
+          // }}
           ,{title:'功能', align: 'center', minWidth:30, templet: function(data) {
             // console.log(data);
             let html = '<div class="layui-btn-group" style="display: flex; flex-direction: column;">';
-            html += '<button type="button" lay-event="result" class="layui-btn layui-btn-primary layui-bg-blue layui-btn-sm">分刀</button>';
-            html += '<button type="button" lay-event="coin" class="layui-btn layui-btn-primary layui-bg-blue layui-btn-sm">大师币</button>';
+            html += '<button type="button" lay-event="resultD" class="layui-btn layui-btn-primary layui-bg-blue">D面分刀</button>';
+            html += '<button type="button" lay-event="resultB" class="layui-btn layui-btn-primary layui-bg-blue">首日满补分刀</button>';
+            html += '<button type="button" lay-event="coin" class="layui-btn layui-btn-primary layui-bg-blue">大师币商店</button>';
             html += '</div>';
             return html;
           }}
           ,{title:'操作', align: 'center', minWidth:30, templet: function(data) {
             // console.log(data);
             let html = '<div class="layui-btn-group" style="display: flex; flex-direction: column;">';
-            html += '<button type="button" lay-event="edit" class="layui-btn layui-btn-primary layui-bg-orange layui-btn-sm">修改</button>';
-            html += '<button type="button" lay-event="delete" class="layui-btn layui-btn-primary layui-bg-red layui-btn-sm">删除</button>';
+            html += '<button type="button" lay-event="edit" class="layui-btn layui-btn-primary layui-bg-orange layui-btn-lg">修改</button>';
+            html += '<button type="button" lay-event="delete" class="layui-btn layui-btn-primary layui-bg-red layui-btn-lg">删除</button>';
             html += '</div>';
             return html;
           }}
@@ -268,13 +269,30 @@ body {
         });
       }
 
-      if (event === 'result') {
+      if (event === 'resultD') {
         $.get("{{ url('/get_team_num') }}", {type:2}, function(num) {
           if (num >= 3) {
             var url = "{{ url('user/account/team') }}" + "?id=" + data.id;
             layer.open({
               type: 2
-              ,title: '分刀'
+              ,title: 'D阶段分刀'
+              ,content: url
+              ,maxmin: true
+              ,area: [width_, '100%'] 
+            });
+          } else {
+            layer.msg('本月作业暂未更新,敬请期待,Ciallo～(∠・ω< )⌒★');
+          }
+        });
+      }
+
+      if (event === 'resultB') {
+        $.get("{{ url('/get_team_num') }}", {type:3}, function(num) {
+          if (num >= 3) {
+            var url = "{{ url('user/account/group') }}" + "?id=" + data.id;
+            layer.open({
+              type: 2
+              ,title: '首日满补分刀'
               ,content: url
               ,maxmin: true
               ,area: [width_, '100%'] 

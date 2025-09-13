@@ -271,20 +271,20 @@ h5 {
                 const borderClass = lockedIds.includes(currentId) ? '' : 'disabled-border';
                 html += '<div class="rainbow-border ' + borderClass + '" data-id="' + currentId + '">';
 
-                for (let kk in data[key][k].team_roles) {
-                  if (data[key][k].team_roles[kk].status == 1) {
-                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片">';
+                for (let kk in data[key][k].roles) {
+                  if (data[key][k].roles[kk].status == 1) {
+                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].roles[kk].image_id + '.webp" alt="图片">';
                   } else {
-                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" style="opacity:0.6;">';
+                    html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].roles[kk].image_id + '.webp" alt="图片" style="opacity:0.6;">';
                   }
                 }
                 html += '</div>';
                 
                 html += '<span class="text">借</span>';
                 if (data[key][k].borrow) {
-                  for (let kk in data[key][k].team_roles) {
-                    if (data[key][k].team_roles[kk].role_id == data[key][k].borrow) {
-                      html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].team_roles[kk].image_id + '.webp" alt="图片" class="image-after-text">';
+                  for (let kk in data[key][k].roles) {
+                    if (data[key][k].roles[kk].role_id == data[key][k].borrow) {
+                      html += '<img src="' + '{{ asset('images') }}' + '/' + data[key][k].roles[kk].image_id + '.webp" alt="图片" class="image-after-text">';
                       break;
                     }
                   }
@@ -324,7 +324,7 @@ h5 {
 
         layer.open({
             title: '操作选项',
-            content: '请选择操作',
+            content: '【锁定】套餐一定包含该作业</br>【解锁】解除锁定状态</br>【隐藏】套餐一定不包含该作业',
             btn: ['锁定', '解锁', '隐藏'],
             yes: function(index) { // 锁定
                 if (!lockedIds.includes(currentId)) {
@@ -430,7 +430,6 @@ h5 {
         bossMap['row' + row] = value;
       }
       getTeamGroups(bossMap, type, atk, lockedIds, hiddenIds);
-
     });
 
 

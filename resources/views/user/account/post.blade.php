@@ -43,14 +43,14 @@ img {
       </div>
     </div>
 
-    <div class="layui-form-item">
+    <!-- <div class="layui-form-item">
       <label class="layui-form-label">狐狸等级</label>
       <div class="layui-input-block">
         <div class="layui-col-md6">
           <input type="number" name="fox_level" placeholder="狐狸等级" lay-verify="" class="layui-input" @if(isset($data['fox_level']) && $data['fox_level']) value="{{$data['fox_level']}}" @endif>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <div class="layui-form-item">
       <label class="layui-form-label">角色</label>
@@ -263,7 +263,6 @@ img {
         {
           id: id,
           nickname: field.nickname,
-          fox_level: field.fox_level,
           role_ids: ids
         }, function(data) {
         var obj = JSON.parse(data);

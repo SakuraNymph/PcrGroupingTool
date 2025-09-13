@@ -12,9 +12,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
+
 class TeamInfoService
 {
-    public static $multiplierRates = [0, 3.5, 3.5, 3.7, 3.8, 4];
+    const MULTIPLIER_RATES = [0, 4.5, 4.5, 4.7, 4.8, 5];
 
     /**
      * [getTeams 获取公共/个人作业]
@@ -23,50 +24,43 @@ class TeamInfoService
      * * @param  [type]  $uid  [用户ID]
      * @return [type]        [description]
      */
-    public static function getTeams($boss, $type, $uid = 0)
+    public static function getTeams($boss, $type = 1, $uid = 0)
     {
-        if ($type == 1) {
-            // 公共作业
-            $where = ['boss' => $boss, 'stage' => 5];
+        if ($type) {
+            if ($type == 1) {
+                // 公共作业
+                $where = [
+                    ['boss', '=', $boss],
+                    ['stage', '=', 5],
+                ];
+            }
+            if ($type == 2) {
+               
+            }
+            if ($type == 3) {
+                // D面作业
+                $where = [
+                    ['boss', '=', $boss],
+                    ['stage', '=', 5],
+                ];
+            }
+            if ($type == 4) {
+                // B面作业
+                $where = [
+                    ['boss', '=', $boss],
+                    ['stage', '=', 2],
+                ];
+            }
+        } else {
+             // 个人作业
+            $where = [
+                ['boss', '=', $boss],
+                ['uid', '=', $uid],
+            ];
         }
-        if ($type == 2) {
-            // 个人作业
-            $where = ['boss' => $boss, 'uid' => $uid];
-        }
-        if ($type == 3) {
-            // D面公共作业
-            $where = ['boss' => $boss, 'stage' => 5];
-        }
-        if ($type == 4) {
-            // B面公共作业
-            $where = ['boss' => $boss, 'stage' => 2];
-        }
-        $where['status'] = 1;
 
-        $modelMap = [
-            1 => \App\Models\Team::class,
-            2 => \App\Models\UserTeam::class,
-            3 => \App\Models\Team::class,
-            4 => \App\Models\Team::class,
-        ];
+        $data = self::getPublicTeams($where, $type);
 
-        $data = $modelMap[$type]::with(['teamRoles' => function ($query) {
-                        $query->join('roles', function ($query) {
-                            $query->on('roles.role_id', '=', 'team_roles.role_id');
-                        })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
-                    }])
-                    ->where($where)
-                    ->where(function ($query) use ($type) {
-                        if ($type == 3) { // 公共作业 open = 1 或者 2
-                            $query->whereIn('open', [0, 1, 2]);
-                        }
-                    })
-                    ->whereYear('created_at', Carbon::now()->year)
-                    ->whereMonth('created_at', Carbon::now()->month)
-                    ->orderBy('score', 'DESC')
-                    ->get();
-
-        $data = $data ? $data->toArray() : [];
         if ($data) {
             usort($data, function($a, $b) {
                 // 逐个比较 role_id
@@ -190,109 +184,45 @@ class TeamInfoService
         return true;
     }
 
-    /**
-     * [getTeamGroups 获取推荐分刀作业]
-     * @param  [type]  $uid       [用户ID]
-     * @param  array   $bossMap   [bossID数组]
-     * @param  integer $type      [类型0手动分刀1自动分刀]
-     * @param  integer $accountId [账号ID]
-     * @param  integer $atkType   [攻击类型]
-     * @return [type]             [结果数据]
-     */
-    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0, $atkType = 0, $lockedIds = [], $hiddenIds = [])
+    private static function getPublicTeams($where, $modelType = 1)
     {
-        if ($type) {
-            if ($accountId) {
-                if ($type == 1) {
-                    $cacheKey = 'autoTeams';
-                }
-                if ($type == 2) {
-                    $cacheKey = 'handTeams';
-                }
-                $where = ['auto' => $type, 'stage' => 5];
-            } else {
-                if ($type == 3) {
-                    $cacheKey = 'bStageTeams';
-                    $where = ['stage' => 2, 'open' => 0];
-                }
-            }
-            $model = \App\Models\Team::class;
-        } else {
-            $cacheKey = '';
-            $where = ['uid' => $uid];
-            $model = \App\Models\UserTeam::class;
-        }
+        $modelMap = [
+            0 => \App\Models\UserTeam::class, // 个人作业
+            1 => \App\Models\Team::class, // 公共自动作业
+            2 => \App\Models\Team::class, // 公共手动作业
+            3 => \App\Models\Team::class, // D面作业
+            4 => \App\Models\Team::class, // B面作业
+        ];
 
-        $data = $model::with(['teamRoles' => function ($query) {
+        $data = buildWhere($modelMap[$modelType], $where)->with(['teamRoles' => function ($query) {
             $query->join('roles', function($join) {
                 $join->on('roles.role_id', '=', 'team_roles.role_id');
             })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
         }])
-        ->where(function ($query) use ($uid, $type, $accountId, $where) {
-            if ($type && $accountId) {
-                $query->where($where);
-            } else {
-                $query->where($where);
-            }
-        })
         ->where('status', 1)
         ->whereYear('created_at', Carbon::now()->year)
         ->whereMonth('created_at', Carbon::now()->month)
         ->orderBy('id')
-        ->get();
+        ->get()
+        ->toArray();
 
-        $data = $data ? $data->toArray() : [];
-        $makeArr = false;
-        // $makeArr = true;
-        if ($cacheKey) {
-            $oldDataJson = Cache::get($cacheKey);
-            if (json_encode($data) != $oldDataJson) {
-                $makeArr = true;
-                Cache::put($cacheKey, json_encode($data));
-            }
-        }
+        return $data;
+    }
 
-        if ($cacheKey) {
-            if ($makeArr) {
-                $teamsRes = self::makeTeams($data);
-                Cache::put($cacheKey . 'makeTeams', $teamsRes);
-            } else {
-                $teamsRes = Cache::get($cacheKey . 'makeTeams');
-            }
-        } else {
-            $data_huawu = Cache::get('data_huawu');
-            if (empty($data_huawu)) {
-                $data_huawu = team::where(['uid' => 0, 'status' => 1])
-                                ->whereYear('created_at', Carbon::now()->year)
-                                ->whereMonth('created_at', Carbon::now()->month)
-                                ->orderBy('id')
-                                ->get();
-                Cache::put('data_huawu', $data_huawu, 600);
-            }
 
-            $data_huawu_new = [];
-            foreach ($data_huawu as $key => $value) {
-                $data_huawu_new[$value->id] = @$value->link;
-            }
-            
-            // 替换link数据
-            foreach ($data as $key => $value) {
-                if ($value['otid']) {
-                    $data[$key]['link'] = @$data_huawu_new[$value['otid']];
-                }
-            }
-            $teamsRes = self::makeTeams($data);
-        }
 
-        $userBox = [];
-        if ($type && $accountId) {
+    private static function filterTeamCompositions($groups, &$bossMap = [], $accountId = 0, $atkType = 0, $lockedIds = [], $hiddenIds = [])
+    {
+        if ($accountId) {
             $userBox = Account::where('id', $accountId)->value('roles');
             if ($userBox) {
                 $userBox = explode(',', $userBox);
             }
+        } else {
+            $userBox = [];
         }
 
-        $successNum = 50;
+        $successNum = 10;
         $failNum    = 0;
         $bossMapNum = 0;
         foreach ($bossMap as $key => $value) {
@@ -302,10 +232,9 @@ class TeamInfoService
         }
         $bossMapNum = count($bossMap);
         $bossMapCountValues = count(array_count_values($bossMap));
-
         sort($bossMap);
 
-        foreach ($teamsRes as $key => $teams) {
+        foreach ($groups as $key => &$teams) {
             $roleStatus     = [];
             $teamBossMap    = [];
             $continueSwitch = false;
@@ -313,7 +242,7 @@ class TeamInfoService
 
             if ($lockedIds) { // 锁定作业ID
                 if (count(array_intersect($teamIds, $lockedIds)) < count($lockedIds)) {
-                    unset($teamsRes[$key]);
+                    unset($groups[$key]);
                     $failNum++;
                     continue;
                 }
@@ -321,7 +250,7 @@ class TeamInfoService
 
             if ($hiddenIds) { // 隐藏作业ID
                 if (array_intersect($teamIds, $hiddenIds)) {
-                    unset($teamsRes[$key]);
+                    unset($groups[$key]);
                     $failNum++;
                     continue;
                 }
@@ -398,46 +327,35 @@ class TeamInfoService
             }
 
             if ($continueSwitch) {
-                unset($teamsRes[$key]);
+                unset($groups[$key]);
                 $failNum++;
                 continue;
             }
 
-            foreach ($teams as $k => $teamInfo) {
-                if ($type && $accountId) { // 筛选角色 每队至少要拥有4名角色
-                    if (count(array_intersect($userBox, array_column($data[$teamInfo['dataKey']]['team_roles'], 'role_id'))) < 4) { // 每队至少拥有4名角色
+
+            foreach ($teams as $k => &$teamInfo) {
+                $teamInfo['borrow'] = 0; // 0:默认不借人
+                if ($accountId) { // 筛选角色 每队最多只能缺一个角色
+                    if (count(array_diff(array_keys($teamInfo['roles']), $userBox)) > 1) { // 每队最多只能缺一个角色
                         $continueSwitch = true;
                         break;
                     } else {
-                        foreach ($data[$teamInfo['dataKey']]['team_roles'] as $kk => $role) {
-                            if (!in_array($role['role_id'], $userBox)) {
-                                $data[$teamInfo['dataKey']]['team_roles'][$kk]['status'] = 0;
-                            }
-                        }
+                        $teamInfo['roles'] = self::presentRoles($teamInfo['roles'], $userBox); 
                     }
                 }
-                $data[$teamInfo['dataKey']]['borrow'] = 0;
-                $roleStatus[] = $data[$teamInfo['dataKey']];
             }
+            unset($teamInfo);
 
             if ($continueSwitch) {
-                unset($teamsRes[$key]);
+                unset($groups[$key]);
                 $failNum++;
                 continue;
             }
 
             // 借人数量判断
-            $is_ok = self::checkRoleSumNum($roleStatus);
+            $is_ok = self::checkStatusOneUnique($teams);
             if (!$is_ok) {
-                unset($teamsRes[$key]);
-                $failNum++;
-                continue;
-            }
-
-            // 出战角色数量判断
-            $is_ok = self::countRolesNum($roleStatus);
-            if (!$is_ok) {
-                unset($teamsRes[$key]);
+                unset($groups[$key]);
                 $failNum++;
                 continue;
             }
@@ -446,96 +364,454 @@ class TeamInfoService
                 break;
             }
         }
+        unset($teams);
 
-        if (count($teamsRes) > $successNum) {
-            $teamsRes = array_slice($teamsRes, 0, $successNum);
+        if (count($groups) > $successNum) {
+            $groups = array_slice($groups, 0, $successNum);
         }
 
-        $res = [];
+        return $groups;
+    }
 
-        foreach ($teamsRes as $key => $teams) {
-            $temp = [];
-            foreach ($teams as $k => $teamInfo) {
-                $temp[] = $data[$teamInfo['dataKey']];
+        /**
+     * 转换成前端展示的结构
+     * [ ['role_id'=>123, 'status'=>1], ... ]
+     */
+    private static function presentRoles(array $rolesMap, array $userBox): array
+    {
+        foreach ($rolesMap as $role => &$status) {
+            $status = in_array($role, $userBox) ? 1 : 0;
+        }
+        return $rolesMap;
+    }
+
+    /**
+     * [firstDayHomework 首日B+D分刀套餐]
+     * @param  [type]  $uid       [用户ID]
+     * @param  array   $bossMap   [bossID数组]
+     * @param  integer $type      [类型0手动分刀1自动分刀]
+     * @param  integer $accountId [账号ID]
+     * @param  integer $atkType   [作业类型0不限制1物理三刀2物理两刀3魔法两刀4魔法三刀]
+     * @param  array   $lockedIds [锁定作业ID]
+     * @param  array   $hiddenIds [隐藏作业ID]
+     * @return [type]             [description]
+     */
+    public static function firstDayHomework($uid, $bossMapB = [], $bossMapD = [], $type = 0, $accountId = 0, $atkType = 0, $lockedIdsB = [], $lockedIdsD = [], $hiddenIds = [])
+    {
+        if ($type == 1) {
+            $cacheKeyD = 'autoTeams';
+        }
+        if ($type == 2) {
+            $cacheKeyD = 'handTeams';
+        }
+        $cacheKeyB = 'bTeams';
+
+        $whereB = [
+            ['auto', '=', 1],
+            ['stage', 'in', [2, 3]],
+        ];
+
+        $whereD = [
+            ['auto', '=', $type],
+            ['stage', '=', 5],
+        ];
+
+        $dataB = self::getPublicTeams($whereB, 1);
+        $dataD = self::getPublicTeams($whereD, 1);
+
+        $makeArr = false;
+        // $makeArr = true;
+        if ($cacheKeyD) {
+            $oldDataJsonB = Cache::get($cacheKeyB);
+            $oldDataJsonD = Cache::get($cacheKeyD);
+            if (json_encode($dataB) != $oldDataJsonB || json_encode($dataD) != $oldDataJsonD) {
+                $makeArr = true;
+                Cache::put($cacheKeyB, json_encode($dataB));
+                Cache::put($cacheKeyD, json_encode($dataD));
             }
-            $res[] = $temp;
         }
-        foreach ($res as $key => &$teams) {
-            foreach ($teams as $k => $team) {
-                if (isset($teams[$k]['link'])) {
-                    $teams[$k]['link'] = json_decode($team['link'], 1);
-                    if ($teams[$k]['link']) {
-                        foreach ($teams[$k]['link'] as $kk => $link) {
-                            $teams[$k]['link'][$kk]['image'] = json_encode($link['image']);
+
+        if ($cacheKeyD) {
+            if ($makeArr) {
+                $teamsResB = self::makeTeams($dataB);
+                Cache::put($cacheKeyB . 'makeTeams', $teamsResB);
+                $teamsResD = self::makeTeams($dataD);
+                Cache::put($cacheKeyD . 'makeTeams', $teamsResD);
+            } else {
+                $teamsResB = Cache::get($cacheKeyB . 'makeTeams');
+                $teamsResD = Cache::get($cacheKeyD . 'makeTeams');
+            }
+        } else {
+            // $data_huawu = Cache::get('data_huawu');
+            // $data_huawu = 0;
+            // if (empty($data_huawu)) {
+            //     $data_huawu = team::where(['uid' => 0, 'status' => 1, 'stage' => 5])
+            //                     ->whereYear('created_at', Carbon::now()->year)
+            //                     ->whereMonth('created_at', Carbon::now()->month)
+            //                     ->orderBy('id')
+            //                     ->get();
+            //     // Cache::put('data_huawu', $data_huawu, 600);
+            // }
+
+            // $data_huawu_new = [];
+            // foreach ($data_huawu as $key => $value) {
+            //     $data_huawu_new[$value->id] = $value->link ?? '';
+            // }
+
+            // // 替换link数据
+            // foreach ($data as $key => $value) {
+            //     if ($value['otid'] && $data_huawu_new[$value['otid']]) {
+            //         $data[$key]['link'] = $data_huawu_new[$value['otid']];
+            //     }
+            // }
+            // $teamsRes = self::makeTeams($data);
+        }
+
+        $teamsResB = self::filterTeamCompositions($teamsResB, $bossMapB, $accountId,        0, $lockedIdsB, $hiddenIds);
+        $teamsResD = self::filterTeamCompositions($teamsResD, $bossMapD, $accountId, $atkType, $lockedIdsD, $hiddenIds);
+
+        $res       = self::matchArraysAllStructuredFull($teamsResB, $teamsResD);
+        $data      = self::getPublicTeams([]);
+
+        $result    = [];
+        foreach ($data as $item) {
+            if (isset($item['id'])) {
+                $result[$item['id']] = $item;
+            }
+        }
+
+        $res = array_slice($res, 0, 10);
+
+        foreach ($res as &$groups) {
+            foreach ($groups as &$group) {
+                $group = self::resolveBorrows($group);
+                if (is_array($group)) {
+                    foreach ($group as &$teams) {
+                        foreach ($teams as &$team) {
+                            $team['roles']  = self::addDisplayId($team['roles'], $result[$team['id']]['team_roles']);
+                            $team['remark'] = $result[$team['id']]['remark'];
+                            $team['stage']  = $result[$team['id']]['stage'];
+                            $team['link']   = json_decode($result[$team['id']]['link'], 1);
+                            if ($team['link']) {
+                                foreach ($team['link'] as $k => $link) {
+                                    $team['link'][$k]['image'] = json_encode($link['image']);
+                                }
+                            }
                         }
                     }
                 }
             }
-            self::borrowRoles($teams);
         }
-        // 用户分刀数据记录
-        self::dataFightLog($uid, $type, $bossMap);
+
         return $res;
     }
 
-    public static function getAdminTeamGroups()
-    {
-        set_time_limit(300); // 设置最大执行时间为60秒
-
-        $where = ['open' => 0];
-        $data = Team::with(['teamRoles' => function ($query) {
-            $query->join('roles', function($join) {
-                $join->on('roles.role_id', '=', 'team_roles.role_id');
-            })->select(DB::raw('CASE WHEN roles.is_6 = 1 THEN roles.role_id_6 ELSE roles.role_id_3 END as image_id, roles.role_id, team_roles.team_id, team_roles.status'))->orderBy('roles.search_area_width', 'DESC');
-        }])
-        ->where(function ($query) use ($where) {
-            $query->where($where);
-        })
-        ->where('status', 1)
-        ->whereYear('created_at', Carbon::now()->year)
-        ->whereMonth('created_at', Carbon::now()->month)
-        ->orderBy('stage')
-        ->get();
-
-        $data = $data ? $data->toArray() : [];
-
-
-
-// return $data;
-
-
-        $aaa = self::makeTeams2($data);
-        return $aaa;
-    }
 
     /**
-     * [checkRoleSumNum 任意两队之间借用角色和共用角色之和不能超过2]
-     * @param  array  $teams [原数据]
-     * @return [type]        [不超过2返回true 超过2返回false]
+     * Resolves borrow assignments for teams to minimize conflicts in role_id across comparable teams.
+     * @param array $pairs Array of 3 pairs, each containing 2 teams with roles, and borrow fields.
+     * @return array|bool Updated pairs with borrow assignments, or false if impossible.
      */
-    private static function checkRoleSumNum($teams = [])
-    {
-        for ($i=0; $i < 2; $i++) { 
-            $statusNum = 0;
-            $aRoles = [];
-            foreach ($teams[$i]['team_roles'] as $akey => $aRoleInfo) {
-                if ($aRoleInfo['status']) {
-                    $aRoles[] = $aRoleInfo['role_id'];
-                } else {
-                    $statusNum++;
-                }
+    public static function resolveBorrows(array $pairs) {
+        if (count($pairs) !== 3 || !self::isValidPairs($pairs)) {
+            return false;
+        }
+
+        $teams = [];
+        foreach ($pairs as $pair) {
+            foreach ($pair as $team) {
+                $teams[] = $team;
             }
-            for ($j=$i+1; $j < 3; $j++) { 
-                $bRoles = [];
-                foreach ($teams[$j]['team_roles'] as $bkey => $bRoleInfo) {
-                    if ($bRoleInfo['status']) {
-                        $bRoles[] = $bRoleInfo['role_id'];
-                    } else {
-                        $statusNum++;
+        }
+        $n = count($teams);
+
+        // Define comparison map (exclude same-pair conflicts: 0↔1, 2↔3, 4↔5)
+        $compareMap = [
+            0 => [2,3,4,5], // B0 compares with B1,D1,B2,D2
+            1 => [2,3,4,5], // D0 compares with B1,D1,B2,D2
+            2 => [0,1,4,5], // B1 compares with B0,D0,B2,D2
+            3 => [0,1,4,5], // D1 compares with B0,D0,B2,D2
+            4 => [0,1,2,3], // B2 compares with B0,D0,B1,D1
+            5 => [0,1,2,3], // D2 compares with B0,D0,B1,D1
+        ];
+
+        $locked = array_fill(0, $n, false);
+        for ($i = 0; $i < $n; $i++) {
+            if (!isset($teams[$i]['borrow'])) {
+                $teams[$i]['borrow'] = 0;
+            }
+            if (!empty($teams[$i]['roles']) && is_array($teams[$i]['roles'])) {
+                // foreach ($teams[$i]['roles'] as $r) {
+                //     if (isset($r['status']) && intval($r['status']) === 0) {
+                //         $teams[$i]['borrow'] = intval($r['role_id']);
+                //         $locked[$i] = true;
+                //         break;
+                //     }
+                // }
+                foreach ($teams[$i]['roles'] as $rid => $status) {
+                    if (intval($status) === 0) {
+                        $teams[$i]['borrow'] = intval($rid);
+                        $locked[$i] = true;
+                        break;
                     }
                 }
-                $sameNum = count(array_intersect($aRoles, $bRoles));
-                if ($statusNum + $sameNum > 2) {
+            }
+            if ($teams[$i]['borrow'] != 0) {
+                $locked[$i] = true;
+            }
+        }
+
+        $roleMap = [];
+        for ($i = 0; $i < $n; $i++) {
+            if (empty($teams[$i]['roles']) || !is_array($teams[$i]['roles'])) {
+                continue;
+            }
+            // foreach ($teams[$i]['roles'] as $r) {
+            //     if (!isset($r['role_id']) || !isset($r['status'])) {
+            //         continue;
+            //     }
+            //     $rid = intval($r['role_id']);
+            //     $status = intval($r['status']);
+            //     if ($status !== 1) {
+            //         continue;
+            //     }
+            //     if (!isset($roleMap[$rid])) {
+            //         $roleMap[$rid] = [];
+            //     }
+            //     if (!in_array($i, $roleMap[$rid], true)) {
+            //         $roleMap[$rid][] = $i;
+            //     }
+            // }
+            foreach ($teams[$i]['roles'] as $rid => $status) {
+                $rid = intval($rid);
+                $status = intval($status);
+                if ($status !== 1) {
+                    continue;
+                }
+                if (!isset($roleMap[$rid])) {
+                    $roleMap[$rid] = [];
+                }
+                if (!in_array($i, $roleMap[$rid], true)) {
+                    $roleMap[$rid][] = $i;
+                }
+            }
+        }
+
+        // Filter roleMap: for each role_id, keep only one team per pair (min index)
+        foreach ($roleMap as $rid => &$indices) {
+            $groups = [];
+            foreach ($indices as $i) {
+                $pair_id = (int)($i / 2); // Pair 0: 0-1, Pair 1: 2-3, Pair 2: 4-5
+                if (!isset($groups[$pair_id])) {
+                    $groups[$pair_id] = [];
+                }
+                $groups[$pair_id][] = $i;
+            }
+            $new_indices = [];
+            foreach ($groups as $group) {
+                sort($group); // Keep smallest index in pair
+                $new_indices[] = $group[0];
+            }
+            $indices = array_values(array_unique($new_indices));
+        }
+
+        $components = [];
+        foreach ($roleMap as $rid => $indices) {
+            if (count($indices) <= 1) {
+                continue;
+            }
+            $indices = array_values(array_unique($indices));
+            $adj = array_fill_keys($indices, []);
+            foreach ($indices as $i) {
+                foreach ($indices as $j) {
+                    if ($i === $j) {
+                        continue;
+                    }
+                    if (in_array($j, $compareMap[$i], true)) {
+                        $adj[$i][] = $j;
+                    }
+                }
+            }
+            $visited = [];
+            foreach ($indices as $start) {
+                if (isset($visited[$start])) {
+                    continue;
+                }
+                $comp = [];
+                $stack = [$start];
+                $visited[$start] = true;
+                while (!empty($stack)) {
+                    $u = array_pop($stack);
+                    $comp[] = $u;
+                    foreach ($adj[$u] as $v) {
+                        if (!isset($visited[$v])) {
+                            $visited[$v] = true;
+                            $stack[] = $v;
+                        }
+                    }
+                }
+                if (count($comp) > 1) {
+                    sort($comp);
+                    $components[] = ['rid' => $rid, 'indices' => $comp];
+                }
+            }
+        }
+
+        if (empty($components)) {
+            return self::rebuildPairs($pairs, $teams);
+        }
+
+        $compInfos = [];
+        foreach ($components as $comp) {
+            $rid = $comp['rid'];
+            $indices = $comp['indices'];
+            $size = count($indices);
+            $preAssigned = 0;
+            foreach ($indices as $idx) {
+                if ($teams[$idx]['borrow'] == $rid) {
+                    $preAssigned++;
+                }
+            }
+            $need = max(0, $size - 1 - $preAssigned);
+            if ($need === 0) {
+                continue;
+            }
+            $candidates = [];
+            foreach ($indices as $idx) {
+                if ($teams[$i]['borrow'] == 0 && !$locked[$idx]) {
+                    $candidates[] = $idx;
+                }
+            }
+            if (count($candidates) < $need) {
+                return false;
+            }
+            $compInfos[] = [
+                'rid' => $rid,
+                'indices' => $indices,
+                'need' => $need,
+                'candidates' => $candidates,
+            ];
+        }
+
+        if (empty($compInfos)) {
+            return self::rebuildPairs($pairs, $teams);
+        }
+
+        usort($compInfos, function($a, $b) {
+            return $b['need'] <=> $a['need'];
+        });
+
+        $combCache = [];
+        $combinations = function(array $arr, int $k) use (&$combCache) {
+            $key = md5(json_encode($arr) . '|' . $k);
+            if (isset($combCache[$key])) {
+                return $combCache[$key];
+            }
+            $res = [];
+            $n = count($arr);
+            if ($k === 0) {
+                return [[]];
+            }
+            if ($k > $n) {
+                return [];
+            }
+            $generate = function($start, $k, $path) use (&$generate, $arr, $n, &$res) {
+                if ($k === 0) {
+                    $res[] = array_map(function($p) use ($arr) { return $arr[$p]; }, $path);
+                    return;
+                }
+                for ($i = $start; $i <= $n - $k; $i++) {
+                    $generate($i + 1, $k - 1, array_merge($path, [$i]));
+                }
+            };
+            $generate(0, $k, []);
+            $combCache[$key] = $res;
+            return $res;
+        };
+
+        $found = false;
+        $assign = [];
+        $usedIdx = [];
+        $dfs = function($pos) use (&$dfs, &$found, &$assign, &$usedIdx, $compInfos, $teams, $locked, $combinations) {
+            if ($found) return;
+            if ($pos >= count($compInfos)) {
+                $valid = true;
+                foreach ($compInfos as $comp) {
+                    $rid = $comp['rid'];
+                    $indices = $comp['indices'];
+                    $need = $comp['need'];
+                    $assigned = 0;
+                    foreach ($indices as $idx) {
+                        if (isset($assign[$idx]) && $assign[$idx] == $rid) {
+                            $assigned++;
+                        }
+                    }
+                    if ($assigned < $need) {
+                        $valid = false;
+                        break;
+                    }
+                }
+                if ($valid) {
+                    $found = true;
+                }
+                return;
+            }
+            $comp = $compInfos[$pos];
+            $rid = $comp['rid'];
+            $need = $comp['need'];
+            if ($need === 0) {
+                $dfs($pos + 1);
+                return;
+            }
+            $candidates = [];
+            foreach ($comp['candidates'] as $idx) {
+                if (!isset($usedIdx[$idx])) {
+                    $candidates[] = $idx;
+                }
+            }
+            if (count($candidates) < $need) {
+                return;
+            }
+            $combos = $combinations($candidates, $need);
+            foreach ($combos as $combo) {
+                foreach ($combo as $idx) {
+                    $assign[$idx] = $rid;
+                    $usedIdx[$idx] = true;
+                }
+                $dfs($pos + 1);
+                if ($found) return;
+                foreach ($combo as $idx) {
+                    unset($assign[$idx]);
+                    unset($usedIdx[$idx]);
+                }
+            }
+        };
+
+        $dfs(0);
+
+        if (!$found) {
+            return false;
+        }
+
+        foreach ($assign as $idx => $rid) {
+            if ($teams[$idx]['borrow'] == 0 && !$locked[$idx]) {
+                $teams[$idx]['borrow'] = $rid;
+            }
+        }
+
+        return self::rebuildPairs($pairs, $teams);
+    }
+
+    private static function isValidPairs(array $pairs): bool {
+        if (count($pairs) !== 3) {
+            return false;
+        }
+        foreach ($pairs as $pair) {
+            if (count($pair) !== 2) {
+                return false;
+            }
+            foreach ($pair as $team) {
+                if (!is_array($team) || !isset($team['roles']) || !is_array($team['roles'])) {
                     return false;
                 }
             }
@@ -543,26 +819,437 @@ class TeamInfoService
         return true;
     }
 
-    /**
-     * [countRolesNum 三队作业至少要保证12个自己的角色]
-     * @param  array  $teams [原数据]
-     * @return [bool]        [大于等于12个角色返回true 小于12个角色返回false]
-     */
-    private static function countRolesNum($teams = [])
+    private static function rebuildPairs(array $originalPairs, array $teams): array {
+        $out = [];
+        $cursor = 0;
+        foreach ($originalPairs as $pair) {
+            $row = [];
+            foreach ($pair as $team) {
+                $updated = $team;
+                $updated['borrow'] = $teams[$cursor]['borrow'];
+                $row[] = $updated;
+                $cursor++;
+            }
+            $out[] = $row;
+        }
+        return $out;
+    }
+
+    // 主匹配方法
+    public static function matchArraysAllStructuredFull($B, $D)
     {
-        $map = [];
-        foreach ($teams as $key => $teamInfo) {
-            foreach ($teamInfo['team_roles'] as $k => $role) {
-                if ($role['status'] && !in_array($role['role_id'], $map)) {
-                    $map[] = $role['role_id'];
+        $result = [];
+
+        foreach ($B as $bItem) {
+            foreach ($D as $dItem) {
+
+                // 1️⃣ 计算匹配分数矩阵
+                $scores = [];
+                foreach ($bItem as $bi => $bChild) {
+                    $bIds = array_column($bChild['roles'], 'role_id'); // 取 role_id 列表
+                    foreach ($dItem as $di => $dChild) {
+                        $dIds = array_column($dChild['roles'], 'role_id');
+                        $scores[$bi][$di] = count(array_intersect($bIds, $dIds));
+                    }
+                }
+
+                // 2️⃣ 生成 D 子元素的全排列
+                $dIndexes = range(0, count($dItem) - 1);
+                $permutations = self::permute($dIndexes);
+
+                // 3️⃣ 找出总分数最高的所有匹配
+                $maxScore = -1;
+                $bestMatches = [];
+                foreach ($permutations as $perm) {
+                    $score = 0;
+                    foreach ($perm as $bi => $di) {
+                        $score += $scores[$bi][$di];
+                    }
+
+                    if ($score > $maxScore) {
+                        $maxScore = $score;
+                        $bestMatches = [$perm];
+                    } elseif ($score === $maxScore) {
+                        $bestMatches[] = $perm;
+                    }
+                }
+
+                // 4️⃣ 按最高匹配组合生成输出，保留所有原字段
+                $pairResults = [];
+                foreach ($bestMatches as $bestMatch) {
+                    $pairResult = [];
+                    foreach ($bestMatch as $bi => $di) {
+                        // 深拷贝元素，保留所有字段
+                        $bCopy = $bItem[$bi];
+                        $dCopy = $dItem[$di];
+
+                        $pairResult[] = [
+                            $bCopy,
+                            $dCopy,
+                        ];
+                    }
+                    $pairResults[] = $pairResult;
+                }
+
+                $result[] = $pairResults;
+            }
+        }
+
+        return $result;
+    }
+
+
+    // 生成全排列
+    public static function permute($items, $perms = [])
+    {
+        if (empty($items)) {
+            return [$perms];
+        }
+
+        $result = [];
+        foreach ($items as $i => $item) {
+            $newItems = $items;
+            unset($newItems[$i]);
+            $result = array_merge($result, self::permute($newItems, array_merge($perms, [$item])));
+        }
+        return $result;
+    }
+
+
+
+
+
+    /**
+     * [getTeamGroups 获取推荐分刀作业]
+     * @param  [type]  $uid       [用户ID]
+     * @param  array   $bossMap   [bossID数组]
+     * @param  integer $type      [分刀类型0自定义刀1自动刀2手动刀]
+     * @param  integer $accountId [账号ID]
+     * @param  integer $atkType   [攻击类型]
+     * @return [type]             [结果数据]
+     */
+    public static function getTeamGroups($uid, $bossMap = [], $type = 0, $accountId = 0, $atkType = 0, $lockedIds = [], $hiddenIds = [])
+    {
+        if ($type) {
+            if ($type == 1) {
+                $cacheKey = 'autoTeams';
+                $where = [
+                    ['auto', '=', $type],
+                    ['stage', '=', 5],
+                ];
+            }
+            if ($type == 2) {
+                $cacheKey = 'handTeams';
+                $where = [
+                    ['auto', '=', $type],
+                    ['stage', '=', 5],
+                ];
+            }
+        } else {
+            $cacheKey = '';
+            $where = ['uid' => $uid];
+        }
+
+        $data = self::getPublicTeams($where, $type);
+
+        $makeArr = false;
+        if ($cacheKey) {
+            $oldDataJson = Cache::get($cacheKey);
+            if (json_encode($data) != $oldDataJson) {
+                $makeArr = true;
+                Cache::put($cacheKey, json_encode($data));
+            }
+        }
+
+        if ($cacheKey) {
+            if ($makeArr) {
+                $teamsRes = self::makeTeams($data);
+                Cache::put($cacheKey . 'makeTeams', $teamsRes);
+            } else {
+                $teamsRes = Cache::get($cacheKey . 'makeTeams');
+            }
+        } else {
+            $data_huawu = Cache::get('data_huawu');
+            $data_huawu = 0;
+            if (empty($data_huawu)) {
+                $data_huawu = team::where(['uid' => 0, 'status' => 1, 'stage' => 5])
+                                ->whereYear('created_at', Carbon::now()->year)
+                                ->whereMonth('created_at', Carbon::now()->month)
+                                ->orderBy('id')
+                                ->get();
+                // Cache::put('data_huawu', $data_huawu, 600);
+            }
+
+            $data_huawu_new = [];
+            foreach ($data_huawu as $key => $value) {
+                $data_huawu_new[$value->id] = $value->link ?? '';
+            }
+
+            // 替换link数据
+            foreach ($data as $key => $value) {
+                if ($value['otid'] && $data_huawu_new[$value['otid']]) {
+                    $data[$key]['link'] = $data_huawu_new[$value['otid']];
+                }
+            }
+            $teamsRes = self::makeTeams($data);
+        }
+
+        $teamsRes = self::filterTeamCompositions($teamsRes, $bossMap, $accountId, $atkType, $lockedIds, $hiddenIds);
+
+        $result = [];
+        foreach ($data as $item) {
+            if (isset($item['id'])) {
+                $result[$item['id']] = $item;
+            }
+        }
+
+        foreach ($teamsRes as &$teams) {
+            $teams = self::assignBorrow($teams);
+            foreach ($teams as &$teamInfo) {
+                $teamInfo['roles']  = self::addDisplayId($teamInfo['roles'], $result[$teamInfo['id']]['team_roles']);
+                $teamInfo['remark'] = $result[$teamInfo['id']]['remark'];
+                $teamInfo['stage']  = $result[$teamInfo['id']]['stage'];
+                $teamInfo['link']   = json_decode($result[$teamInfo['id']]['link'], 1);
+                if ($teamInfo['link']) {
+                    foreach ($teamInfo['link'] as $k => $link) {
+                        $teamInfo['link'][$k]['image'] = json_encode($link['image']);
+                    }
+                }
+            }
+            unset($teamInfo);
+        }
+        unset($teams);
+
+        // 用户分刀数据记录
+        self::dataFightLog($uid, $type, $bossMap);
+        return $teamsRes;
+    }
+
+    private static function addDisplayId($resData, $rawData)
+    {
+        foreach ($rawData as &$roleInfo) {
+            $roleInfo['status'] = $resData[$roleInfo['role_id']];
+            unset($roleInfo['team_id']);
+        }
+        unset($roleInfo);
+        return $rawData;
+    }
+
+    public static function matchArraysAllStructured($B, $D)
+    {
+        $result = [];
+
+        foreach ($B as $bItem) {
+            foreach ($D as $dItem) {
+
+                // 1️⃣ 计算匹配分数矩阵
+                $scores = [];
+                foreach ($bItem as $bi => $bChild) {
+                    $bIds = array_column($bChild['roles'], 'role_id');
+                    foreach ($dItem as $di => $dChild) {
+                        $dIds = array_column($dChild['roles'], 'role_id');
+                        $scores[$bi][$di] = count(array_intersect($bIds, $dIds));
+                    }
+                }
+
+                // 2️⃣ 生成 D 子元素的全排列
+                $dIndexes = [0, 1, 2];
+                $permutations = self::permute($dIndexes);
+
+                // 3️⃣ 找出总分数最高的所有匹配
+                $maxScore = -1;
+                $bestMatches = [];
+                foreach ($permutations as $perm) {
+                    $score = 0;
+                    foreach ($perm as $bi => $di) {
+                        $score += $scores[$bi][$di];
+                    }
+
+                    if ($score > $maxScore) {
+                        $maxScore = $score;
+                        $bestMatches = [$perm];
+                    } elseif ($score === $maxScore) {
+                        $bestMatches[] = $perm;
+                    }
+                }
+
+                // 4️⃣ 按所有最高匹配组合生成输出，包一层数组
+                $pairResults = [];
+                foreach ($bestMatches as $bestMatch) {
+                    $pairResult = [];
+                    foreach ($bestMatch as $bi => $di) {
+                        $pairResult[] = [
+                            [
+                                'roles' => $bItem[$bi]['roles'],
+                                'borrow' => $bItem[$bi]['borrow'],
+                            ],
+                            [
+                                'roles' => $dItem[$di]['roles'],
+                                'borrow' => $dItem[$di]['borrow'],
+                            ],
+                        ];
+                    }
+                    $pairResults[] = $pairResult; // 每个最高相似度排列
+                }
+
+                // 将同一个 B&D 元素组合的所有子组合包一层
+                $result[] = $pairResults;
+            }
+        }
+
+        return $result;
+    }
+
+    private static function checkStatusOneUnique(array $teams): bool
+    {
+        // 校验输入
+        if (count($teams) !== 3) {
+            return false;
+        }
+
+        // 预处理每组数据，提取 status=1 的角色 和 status=0 的数量
+        $teamData = array_map(function ($team) {
+            $activeRoles = [];
+            $inactiveCount = 0;
+            // foreach ($team['roles'] as $role) {
+            //     if ($role['status']) {
+            //         $activeRoles[] = $role['role_id'];
+            //     } else {
+            //         $inactiveCount++;
+            //     }
+            // }
+            foreach ($team['roles'] as $role => $status) {
+                if ($status) {
+                    $activeRoles[] = $role;
+                } else {
+                    $inactiveCount++;
+                }
+            }
+            return ['active' => $activeRoles, 'inactive' => $inactiveCount];
+        }, $teams);
+
+        // 两两比较
+        for ($i = 0; $i < 2; $i++) {
+            for ($j = $i + 1; $j < 3; $j++) {
+                $sameNum = count(array_intersect($teamData[$i]['active'], $teamData[$j]['active']));
+                $totalInactive = $teamData[$i]['inactive'] + $teamData[$j]['inactive'];
+
+                if ($totalInactive + $sameNum > 2) {
+                    return false;
                 }
             }
         }
-        return count($map) >= 12 ? true : false;
+
+        return true;
     }
 
     /**
-     * [borrowRoles 确定推荐借用角色]
+     * [assignBorrow 确定推荐借用角色]
+     * @param  array  $groups [分组后数据]
+     * @return [type]          [补全借用角色的数据]
+     */
+    private static function assignBorrow(array $groups)
+    {
+        // 验证输入
+        if (count($groups) !== 3) {
+            return $groups;
+        }
+
+        foreach ($groups as &$group) {
+            $group['borrow'] = 0;
+        }
+        unset($group);
+
+        // 先找出有 status=0 的组并直接设置 borrow
+        $statusZeroGroups = [];
+        foreach ($groups as $i => &$group) {
+            foreach ($group['roles'] as $role => $status) {
+                if ($status == 0) {
+                    $group['borrow'] = $role;
+                    $statusZeroGroups[$i] = true;
+                    break;
+                }
+            }
+        }
+        unset($group);
+
+        // 构建每两组之间的交集
+        $intersections = [];
+        for ($i = 0; $i < 3; $i++) {
+            for ($j = $i + 1; $j < 3; $j++) {
+                $idsI = array_keys($groups[$i]['roles']);
+                $idsJ = array_keys($groups[$j]['roles']);
+                $intersections[$i][$j] = $intersections[$j][$i] = array_intersect($idsI, $idsJ);
+            }
+        }
+
+        // 封装一个分配函数，减少重复逻辑
+        $assignPair = function ($a, $b) use (&$groups, &$intersections) {
+            if (!empty($groups[$a]['borrow']) && !empty($groups[$b]['borrow'])) return;
+
+            $sameRoles = $intersections[$a][$b];
+            if (empty($sameRoles)) return;
+
+            if (!empty($groups[$a]['borrow']) && empty($groups[$b]['borrow'])) {
+                if (($key = array_search($groups[$a]['borrow'], $sameRoles)) !== false) {
+                    unset($sameRoles[$key]);
+                }
+                if (!empty($sameRoles)) {
+                    $groups[$b]['borrow'] = reset($sameRoles);
+                }
+            } elseif (empty($groups[$a]['borrow']) && !empty($groups[$b]['borrow'])) {
+                if (($key = array_search($groups[$b]['borrow'], $sameRoles)) !== false) {
+                    unset($sameRoles[$key]);
+                }
+                if (!empty($sameRoles)) {
+                    $groups[$a]['borrow'] = reset($sameRoles);
+                }
+            } elseif (empty($groups[$a]['borrow']) && empty($groups[$b]['borrow'])) {
+                $groups[$a]['borrow'] = reset($sameRoles);
+                $groups[$b]['borrow'] = next($sameRoles);
+            }
+        };
+
+        // 判断是否有共享两个角色的组合
+        $hasTwoShared = false;
+        $pair = [];
+        for ($i = 0; $i < 2; $i++) {
+            for ($j = $i + 1; $j < 3; $j++) {
+                if (count($intersections[$i][$j]) == 2) {
+                    $hasTwoShared = true;
+                    $pair = [$i, $j];
+                    break 2;
+                }
+            }
+        }
+
+        if ($hasTwoShared) {
+            // 找到第三个组
+            $k = 3 - $pair[0] - $pair[1];
+            $assignPair($pair[0], $pair[1]);
+            $assignPair($pair[0], $k);
+            $assignPair($pair[1], $k);
+        } elseif (!empty($statusZeroGroups)) {
+            // 有 status=0 的组
+            $key = array_keys($statusZeroGroups)[0];
+            $others = array_diff([0, 1, 2], [$key]);
+            $others = array_values($others);
+            $assignPair($key, $others[0]);
+            $assignPair($key, $others[1]);
+            $assignPair($others[0], $others[1]);
+        } else {
+            // 普通情况
+            $assignPair(0, 1);
+            $assignPair(0, 2);
+            $assignPair(1, 2);
+        }
+
+        return $groups;
+    }
+
+
+    /**
+     * [borrowRoles 确定推荐借用角色](废弃)
      * @param  array  &$teams [分组后数据]
      * @return [type]         [补全借用角色的数据]
      */
@@ -755,6 +1442,7 @@ class TeamInfoService
         }
         $limitNum = 3;
         $roleMapA = [];
+        $roleMapB = [];
         foreach ($teamA['team_roles'] as $key => $role) {
             if ($role['status'] == 0) {
                 $limitNum--;
@@ -762,7 +1450,6 @@ class TeamInfoService
                 $roleMapA[] = $role['role_id'];
             }
         }
-        $roleMapB = [];
         foreach ($teamB['team_roles'] as $key => $role) {
             if ($role['status'] == 0) {
                 $limitNum--;
@@ -781,312 +1468,82 @@ class TeamInfoService
      */
     private static function makeTeams($data = [])
     {
-        $n = count($data);
-        $teamsRes = [];
-        for ($i = 0; $i < $n - 2; $i++) {
-            for ($j = $i + 1; $j < $n - 1; $j++) {
-                if (self::checkSameRoleNum($data[$i], $data[$j])) {
-                    continue;
-                }
-                for ($k = $j + 1; $k < $n; $k++) {
-                    if (self::checkSameRoleNum($data[$i], $data[$k])) {
-                        continue;
+        $n            = count($data);
+        $teamsRes     = [];
+        $invalidPairs = [];
+
+        for ($a = 0; $a < $n - 2; $a++) { 
+            for ($b = $a + 1; $b < $n - 1; $b++) { 
+                if (self::hasInvalidPair([$a], $b, $invalidPairs, $data)) continue;
+                for ($c = $b + 1; $c < $n; $c++) { 
+                    if (self::hasInvalidPair([$a, $b], $c, $invalidPairs, $data)) continue;
+
+                    // 先用紧凑的 roles 映射来判断
+                    $rolesA = self::makeRolesMap(array_column($data[$a]['team_roles'], 'role_id'));
+                    $rolesB = self::makeRolesMap(array_column($data[$b]['team_roles'], 'role_id'));
+                    $rolesC = self::makeRolesMap(array_column($data[$c]['team_roles'], 'role_id'));
+
+                    $bool = self::checkRoleOverlapLimit([$rolesA, $rolesB, $rolesC]);
+                    if ($bool) {
+                        $teamsRes[] = [
+                            ['id' => $data[$a]['id'], 'boss' => $data[$a]['boss'], 'score' => $data[$a]['score'], 'atk_value' => $data[$a]['atk_value'], 'roles' => $rolesA],
+                            ['id' => $data[$b]['id'], 'boss' => $data[$b]['boss'], 'score' => $data[$b]['score'], 'atk_value' => $data[$b]['atk_value'], 'roles' => $rolesB],
+                            ['id' => $data[$c]['id'], 'boss' => $data[$c]['boss'], 'score' => $data[$c]['score'], 'atk_value' => $data[$c]['atk_value'], 'roles' => $rolesC]
+                        ];
                     }
-                    if (self::checkSameRoleNum($data[$j], $data[$k])) {
-                        continue;
-                    }
-                    $teamsRes[] = [
-                        ['dataKey' => $i, 'id' => $data[$i]['id'], 'boss' => $data[$i]['boss'], 'score' => $data[$i]['score'], 'atk_value' => $data[$i]['atk_value']],
-                        ['dataKey' => $j, 'id' => $data[$j]['id'], 'boss' => $data[$j]['boss'], 'score' => $data[$j]['score'], 'atk_value' => $data[$j]['atk_value']],
-                        ['dataKey' => $k, 'id' => $data[$k]['id'], 'boss' => $data[$k]['boss'], 'score' => $data[$k]['score'], 'atk_value' => $data[$k]['atk_value']]
-                    ];
                 }
             }
         }
         return self::sortTeams($teamsRes);
     }
 
-    private static function makeTeams2($data = [])
-    {
-        $n = count($data);
-        $teamsRes = [];
-
-        $map = ['i', 'j', 'k', 'l', 'm', 'p'];
-
-
-        $aaa = 0;
-
-        for ($i=0; $i < $n - 5; $i++) { 
-            for ($j=$i + 1; $j < $n - 4; $j++) { 
-                if (self::checkSameRoleNum($data[$i], $data[$j])) {
-                    continue;
-                }
-                for ($k=$j + 1; $k < $n - 3; $k++) { 
-                    if (self::checkSameRoleNum($data[$i], $data[$k])) {
-                        continue;
-                    }
-                    if (self::checkSameRoleNum($data[$j], $data[$k])) {
-                        continue;
-                    }
-                    for ($l=$k + 1; $l < $n - 2; $l++) { 
-                        $sum = $data[$i]['stage'] + $data[$j]['stage'] + $data[$k]['stage'] + $data[$l]['stage'];
-                        if ($sum == 8 || $sum == 20) {
-                            continue;
-                        }
-                        if (self::checkSameRoleNum($data[$i], $data[$l])) {
-                            continue;
-                        }
-                        if (self::checkSameRoleNum($data[$j], $data[$l])) {
-                            continue;
-                        }
-                        if (self::checkSameRoleNum($data[$k], $data[$l])) {
-                            continue;
-                        }
-                        for ($m=$l + 1; $m < $n - 1; $m++) { 
-                            $sum += $data[$m]['stage'];
-                            if ($sum == 13 || $sum == 22) {
-                                continue;
-                            }
-                            if (self::checkSameRoleNum($data[$i], $data[$m])) {
-                                continue;
-                            }
-                            if (self::checkSameRoleNum($data[$j], $data[$m])) {
-                                continue;
-                            }
-                            if (self::checkSameRoleNum($data[$k], $data[$m])) {
-                                continue;
-                            }
-                            if (self::checkSameRoleNum($data[$l], $data[$m])) {
-                                continue;
-                            }
-                            for ($p=$m + 1; $p < $n; $p++) { 
-                                $sum += $data[$p]['stage'];
-                                if ($sum == 18 || $sum == 24) {
-                                    continue;
-                                }
-                                if (self::checkSameRoleNum($data[$i], $data[$p])) {
-                                    continue;
-                                }
-                                if (self::checkSameRoleNum($data[$j], $data[$p])) {
-                                    continue;
-                                }
-                                if (self::checkSameRoleNum($data[$k], $data[$p])) {
-                                    continue;
-                                }
-                                if (self::checkSameRoleNum($data[$l], $data[$p])) {
-                                    continue;
-                                }
-                                if (self::checkSameRoleNum($data[$m], $data[$p])) {
-                                    continue;
-                                }
-                                
-                                $tempB = [];
-                                $tempD = [];
-                                foreach ($map as $key => $value) {
-                                    $arr = ['dataKey' => $$value, 'boss' => $data[$$value]['boss'], 'score' => $data[$$value]['score'], 'team_roles' => $data[$$value]['team_roles']];
-                                    if ($data[$$value]['stage'] == 2) {
-                                        $tempB[] = $arr;
-                                    }
-                                    if ($data[$$value]['stage'] == 5) {
-                                        $tempD[] = $arr;
-                                    }
-                                }
-
-                                if (self::checkRoleSumNum2($tempB) && self::checkRoleSumNum2($tempD)) {
-
-
-                                    $tempTeam = ['B' => $tempB, 'D' => $tempD];
-
-                                    // $aaa = self::borrowRoles2($tempTeam);
-
-
-
-                                    // return $aaa;
-
-
-                                    $aaa++;
-
-                                    if ($aaa == 4) {
-                                        // $teamsRes[] = self::borrowRoles2($tempTeam);
-                                    }
-
-                                    $teamsRes[] = self::borrowRoles2($tempTeam);
-
-                                    if ($aaa > 20) {
-                                        break 6;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $teamsRes;
-
-        return $aaa;
-    }
-
-    private static function borrowRoles2($team = [])
-    {
-        $bTeam = $team['B'];
-        $dTeam = $team['D'];
-
-        $bTeamRoles = [];
-        $dTeamRoles = [];
-
-        foreach ($bTeam as $key => $teamInfo) {
-            $bTeamRoles[] = array_column($teamInfo['team_roles'], 'image_id');
-        }
-
-        foreach ($dTeam as $key => $teamInfo) {
-            $dTeamRoles[] = array_column($teamInfo['team_roles'], 'image_id');
-        }
-
-        $bestScore = -1;
-        $bestMatch = [];
-
-        $permutations = self::permute([0,1,2]);
-
-        foreach ($permutations as $perm) {
-            $totalScore = 0;
-            $match = [];
-            foreach ($perm as $i => $dIndex) {
-                $bIndex = $i;
-                $score = count(array_intersect($bTeamRoles[$bIndex], $dTeamRoles[$dIndex]));
-                $totalScore += $score;
-                $match[] = [
-                    'b_index' => $bIndex,
-                    'd_index' => $dIndex,
-                    'score'   => $score,
-                ];
-            }
-
-            if ($totalScore > $bestScore) {
-                $bestScore = $totalScore;
-                $bestMatch = $match;
-            }
-        }
-
-
-        $bTeamRoles = self::findSameRolesFromTwoTeams($bTeamRoles);
-        $dTeamRoles = self::findSameRolesFromTwoTeams($dTeamRoles);
-
-        $teamsRes = [];
-
-        $myRoles = [];
-
-
-        foreach ($bestMatch as $key => $x_index) {
-            if ($x_index['score']) {
-                $bdSameRoles = array_intersect($bTeamRoles[$x_index['b_index']]['team'], $dTeamRoles[$x_index['d_index']]['team']);
-
-                foreach ($bTeamRoles[$x_index['b_index']]['sameRoles'] as $k => $role_id) {
-                    if (in_array($role_id, $bdSameRoles)) {
-                        unset($bTeamRoles[$x_index['b_index']]['sameRoles'][$k]);
-                    }
-                }
-                $b_borrow = current($bTeamRoles[$x_index['b_index']]['sameRoles']);
-                $bTeamRoles[$x_index['b_index']]['borrow'] = $b_borrow;
-                if ($b_borrow) {
-                    foreach ($bTeamRoles[$x_index['b_index']]['team'] as $k => $role_id) {
-                        if ($role_id != $b_borrow) { // 必须使用自己的角色
-                            $myRoles[] = $role_id;
-                        }
-                    }
-                }
-
-                foreach ($dTeamRoles[$x_index['d_index']]['sameRoles'] as $k => $role_id) {
-                    if (in_array($role_id, $bdSameRoles)) {
-                        unset($dTeamRoles[$x_index['d_index']]['sameRoles'][$k]);
-                    }
-                }
-                $d_borrow = current($dTeamRoles[$x_index['d_index']]['sameRoles']);
-                $dTeamRoles[$x_index['d_index']]['borrow'] = $d_borrow;
-                if ($d_borrow) {
-                    foreach ($dTeamRoles[$x_index['d_index']]['team'] as $k => $role_id) {
-                        if ($role_id != $d_borrow) { // 必须使用自己的角色
-                            $myRoles[] = $role_id;
-                        }
-                    }
-                }
-            } else {
-                $bTeamRoles[$x_index['b_index']]['borrow'] = 0;
-                $dTeamRoles[$x_index['d_index']]['borrow'] = 0;
-            }
-        }
-
-        foreach ($bestMatch as $key => $x_index) {
-            if (!$bTeamRoles[$x_index['b_index']]['borrow']) {
-                foreach ($bTeamRoles[$x_index['b_index']]['team'] as $k => $role_id) {
-                    if (in_array($role_id, $myRoles)) {
-                        $bTeamRoles[$x_index['b_index']]['borrow'] = $role_id;
-                        break;
-                    }
-                }
-            }
-
-            if (!$dTeamRoles[$x_index['d_index']]['borrow']) {
-                foreach ($dTeamRoles[$x_index['d_index']]['team'] as $k => $role_id) {
-                    if (in_array($role_id, $myRoles)) {
-                        $dTeamRoles[$x_index['d_index']]['borrow'] = $role_id;
-                        break;
-                    }
-                }
-            }
-
-            $teamsRes[] = [
-                'b' => ['team' => $bTeamRoles[$x_index['b_index']]['team'], 'borrow' => $bTeamRoles[$x_index['b_index']]['borrow'], 'boss' => $bTeam[$x_index['b_index']]['boss'], 'score' => $bTeam[$x_index['b_index']]['score']],
-                'd' => ['team' => $dTeamRoles[$x_index['d_index']]['team'], 'borrow' => $dTeamRoles[$x_index['d_index']]['borrow'], 'boss' => $dTeam[$x_index['d_index']]['boss'], 'score' => $dTeam[$x_index['d_index']]['score']],
-            ];
-        }
-
-        return $teamsRes;
-
-        return $bestMatch;
-
-        return [ 'b' => $bTeamRoles, 'd' => $dTeamRoles];
-        
-    }
-
-    private static function findSameRolesFromTwoTeams($teams = [])
+    /**
+     * 内部存储的紧凑映射
+     * [ role_id => 1 ]
+     */
+    private static function makeRolesMap(array $roles = []): array
     {
         $res = [];
-        foreach ($teams as $key => $value) {
-            $sameRoles = [];
-            foreach ($teams as $k => $v) {
-                if ($k != $key) {
-                    $sameRoles = array_merge($sameRoles, array_intersect($value, $v));
-                }
+        foreach ($roles as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                $res[$id] = 1;
             }
-            $res[$key]['team'] = $value;
-            $res[$key]['sameRoles'] = $sameRoles;
         }
         return $res;
     }
 
-    // 生成所有的排列
-    private static function permute($items = []) {
-        if (count($items) <= 1) return [$items];
+    // 检查任意两两组合是否非法
+    private static function hasInvalidPair($group, $last, &$invalidPairs, $data) {
+        $count = count($group);
+        for ($i = 0; $i < $count; $i++) {
+            $a = $data[$group[$i]]['id'];
+            $b = $data[$last]['id'];
 
-        $result = [];
-        foreach ($items as $key => $item) {
-            $rest = $items;
-            unset($rest[$key]);
-            foreach (self::permute(array_values($rest)) as $perm) {
-                array_unshift($perm, $item);
-                $result[] = $perm;
+            // 已经标记过非法
+            if (isset($invalidPairs["$a,$b"]) || isset($invalidPairs["$b,$a"])) {
+                return true;
+            }
+
+            // 业务规则判断
+            if (self::checkSameRoleNum($data[$group[$i]], $data[$last])) {
+                $invalidPairs["$a,$b"] = true; // 直接记录
+                return true;
             }
         }
-        return $result;
+        return false;
     }
 
-    private static function checkRoleSumNum2($team = [])
+    /**
+     * [checkRoleOverlapLimit 借人数量判断 最多可以借3个角色 如果有三个相同角色 那么需要借两个角色 如果有两个相同角色 那么需要借一个角色]
+     * @param  array  $group [description]
+     * @return [bool]        [借人大于3个返回false(不符合)借人小于3个返回true(符合)]
+     */
+    private static function checkRoleOverlapLimit($group = [])
     {
         $roles = [];
-        foreach ($team as $key => $value) {
-            $roles = array_merge($roles, array_column($value['team_roles'], 'role_id'));
+        foreach ($group as $team) {
+            $roles = array_merge($roles, $team);
         }
 
         $targetNum = 0;
@@ -1112,7 +1569,7 @@ class TeamInfoService
      */
     private static function sortTeams($data)
     {
-        $multiplierRates = self::$multiplierRates;
+        $multiplierRates = self::MULTIPLIER_RATES;
 
         foreach ($data as &$teams) {
             usort($teams, function($a, $b) {

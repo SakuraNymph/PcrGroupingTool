@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\PcrController::class, 'index']);
 
-
-
+// 测试
+Route::get('test3', [App\Http\Controllers\PcrController::class, 'test3']);
 
 
 Route::post('list', [App\Http\Controllers\RoleController::class, 'list']);
@@ -78,6 +78,12 @@ Route::get('user/login', [App\Http\Controllers\UserAuthController::class, 'showL
 Route::post('user/login', [App\Http\Controllers\UserAuthController::class, 'login']);
 
 
+
+Route::get('admin/team/get_team_groups', [App\Http\Controllers\AdminTeamController::class, 'getTeamGroups']);
+
+
+
+
 // 在中间件中
 Route::middleware('auth:admin')->group(function () {
 	// 管理员后台首页
@@ -91,6 +97,7 @@ Route::middleware('auth:admin')->group(function () {
 	Route::post('admin/team/add', [App\Http\Controllers\AdminTeamController::class, 'add']);
 	Route::get('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
 	Route::post('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
+	
 
 	// 角色列表页面
 	Route::get('list', [App\Http\Controllers\RoleController::class, 'list']);
@@ -143,12 +150,16 @@ Route::middleware('auth:user')->group(function () {
 
 	Route::get('user/account/get_can_use_roles', [App\Http\Controllers\AccountController::class, 'getCanUseRoles']);
 	Route::get('user/account/team', [App\Http\Controllers\AccountController::class, 'team']);
+	Route::get('user/account/group', [App\Http\Controllers\AccountController::class, 'group']);
 	Route::get('user/account/get_team_groups', [App\Http\Controllers\AccountController::class, 'getTeamGroups']);
 	Route::post('user/account/delete', [App\Http\Controllers\AccountController::class, 'delete']);
 	Route::post('user/account/fox', [App\Http\Controllers\AccountController::class, 'fox']);
 	// 大师币
 	Route::get('user/account/coin', [App\Http\Controllers\AccountController::class, 'coin']);
 	Route::post('user/account/coin', [App\Http\Controllers\AccountController::class, 'coin']);
+
+	// 首日B+D套餐
+	Route::get('user/account/first_day', [App\Http\Controllers\AccountController::class, 'firstDay']);
 });
 
 

@@ -58,16 +58,16 @@
 
 <div class="button-container">
   
+  <button id="firstDayHomeWork">首日满补套餐</button>
   @if(Auth::guard('user')->check())
   <button onclick="location.href='{{ url("user/account/list") }}'">我的账号</button>
   @endif
-
   <button onclick="location.href='{{ url("team") }}'">我的作业</button>
   <button onclick="location.href='{{ url("team_list") }}'">作业列表</button>
   <button id="subscribe">作业订阅</button>
   <div id="rank_button">
   </div>
-  <button onclick="location.href='{{ url("guide") }}'">推荐攻略</button>
+  <!-- <button onclick="location.href='{{ url("guide") }}'">推荐攻略</button> -->
   <!-- <button id="rank">推荐rank</button> -->
   <button id="teach">使用教程</button>
   <button id="support">支持作者</button>
@@ -83,7 +83,8 @@
 
 <!-- 页面底部的提示文字 -->
 <p class="hint-text">每月会战前一天更新作业数据</p>
-<p class="hint-text">域名即将到期,最新域名【pcr.saololi.asia】</p>
+<!-- <p class="hint-text">400/800/1800公会招人,群【585880616】</p> -->
+<!-- <p class="hint-text">国服600会招人,群【585880616】</p> -->
 
 </body>
 </html>
@@ -106,7 +107,16 @@
 
   layui.use(function () {
 
-    
+    $('#firstDayHomeWork').click(function () {
+      $.get("{{ url('/get_team_num') }}", {type:3}, function(num) {
+        if (num == 1) {
+          layer.msg('仅限注册用户使用!');
+        } else {
+          var url = "{{ url('/user/account/list') }}";
+          window.location.href=url;
+        }
+      });
+    });
 
     $('#subscribe').click(function () {
       const uid = "{{ $uid }}";
@@ -117,7 +127,7 @@
           ,title: '作业订阅'
           ,content: url
           ,maxmin: true
-          ,area: ['60%', '50%']
+          ,area: ['80%', '60%']
         });
       } else {
         layer.msg('请注册后使用');

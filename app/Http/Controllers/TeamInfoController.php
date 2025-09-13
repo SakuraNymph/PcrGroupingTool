@@ -20,7 +20,6 @@ class TeamInfoController extends Controller
 {
     public function team()
     {
-        // dd(session('status'));
         return view('team.index');
     }
 
@@ -39,7 +38,7 @@ class TeamInfoController extends Controller
         if (!in_array($boss, [1,2,3,4,5])) {
             $boss = 1;
         }
-        $data = TeamInfoService::getTeams($boss, 2, $uid);
+        $data = TeamInfoService::getTeams($boss, 0, $uid);
         return json_encode(['status' => 1, 'result' => $data]);
     }
 
@@ -353,13 +352,16 @@ class TeamInfoController extends Controller
     public function getTeamNum(Request $request)
     {
         $type = (int)$request->input('type');
-        if (!in_array($type, [1,2])) {
+        if (!in_array($type, [1,2,3])) {
             $type = 1;
         }
 
         $uid = Auth::guard('user')->id();
         if (!$uid) {
             $uid = session('id');
+            if ($type == 3) {
+                return 1;
+            }
         }
 
         if ($type == 1) { // 用户添加
@@ -367,8 +369,13 @@ class TeamInfoController extends Controller
             $model = \App\Models\UserTeam::class;
         }
 
-        if ($type == 2) { // 作业网数据
-            $where = ['uid' => 0, 'status' => 1];
+        if ($type == 2) { // 作业网数据 D面
+            $where = ['uid' => 0, 'status' => 1, 'stage' => 5];
+            $model = \App\Models\Team::class;
+        }
+
+        if ($type == 3) { // 作业网数据 B面
+            $where = ['uid' => 0, 'status' => 1, 'stage' => 2];
             $model = \App\Models\Team::class;
         }
 
@@ -387,42 +394,6 @@ class TeamInfoController extends Controller
             }
         }
         return $sum;
-    }
-
-    private function sumRoleNum($teams = [], $num = 2)
-    {
-        $sum = 0;
-        for ($i=0; $i < 2; $i++) { 
-            for ($j=$i+1; $j < 3; $j++) { 
-                $same_num = count(array_intersect($teams[$i]['role_ids'], $teams[$j]['role_ids']));
-                if ($same_num > $sum) {
-                    $sum = $same_num;
-                }
-                if ($same_num == $num) {
-                    break 2;
-                }
-            }
-        }
-        return ['sum' => $sum, 'i' => $i, 'j' => $j];
-    }
-
-    private function checkRoleSumNum($teams = [])
-    {
-        $sum       = 0;
-        $statusNum = $this->sumStatusNum($teams);
-        $sum       += $statusNum;
-        $roleMap   = [];
-        foreach ($teams as $key => $teamInfo) {
-            $roleMap = array_merge($roleMap, $teamInfo['role_ids']);
-        }
-        $roleShowTimes = array_count_values(array_count_values($roleMap));
-        if (isset($roleShowTimes[3])) {
-            $sum += $roleShowTimes[3] * 2;
-        }
-        if (isset($roleShowTimes[2])) {
-            $sum += $roleShowTimes[2] * 1;
-        }
-        return $sum > 3 ? false : true;
     }
 
     /**

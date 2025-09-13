@@ -40,11 +40,11 @@ class User extends Authenticatable
 
     public static function getUserInfoByIp($ip)
     {
-        $exists = self::where('ip', $ip)->exists();
-        if (!$exists) {
-            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0, 'sub_start' => '00:00:00', 'sub_end' => '23:59:59']);
-        }
         $user_info = self::where('ip', $ip)->first();
+        if (!$user_info) {
+            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0, 'sub_start' => '00:00:00', 'sub_end' => '23:59:59']);
+            $user_info = self::where('ip', $ip)->first();
+        }
         $user_info = $user_info ? $user_info->toArray() : [];
         self::where('ip', $ip)->update(['updated_at' => timeToStr()]);
         return $user_info;
