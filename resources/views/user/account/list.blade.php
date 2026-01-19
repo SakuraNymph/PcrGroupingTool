@@ -124,7 +124,7 @@ body {
         headers: {
           'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
-        lineStyle: 'height: 150px;',
+        lineStyle: 'height: 200px;',
         cols: [[
             // {title:'序号', type:'numbers',  width: 80}
            {field:'nickname', title:'昵称', align: 'center', minWidth: 120}
@@ -154,6 +154,7 @@ body {
             html += '<button type="button" lay-event="resultD" class="layui-btn layui-btn-primary layui-bg-blue">D面分刀</button>';
             html += '<button type="button" lay-event="resultB" class="layui-btn layui-btn-primary layui-bg-blue">首日满补分刀</button>';
             html += '<button type="button" lay-event="coin" class="layui-btn layui-btn-primary layui-bg-blue">大师币商店</button>';
+            html += '<button type="button" lay-event="statistics" class="layui-btn layui-btn-primary layui-bg-blue">抽卡统计</button>';
             html += '</div>';
             return html;
           }}
@@ -259,8 +260,8 @@ body {
           ,title: '修改'
           ,content: url
           ,maxmin: true
-          ,area: [width_, '100%']
-          ,btn: ['确定', '取消']
+          ,area: [width_, '95%']
+          // ,btn: ['确定', '取消']
           ,yes: function(index, layero){
             //点击确认触发 iframe 内容中的按钮提交
             var submit = layero.find('iframe').contents().find("#layuiadmin-app-form-submit");
@@ -314,6 +315,25 @@ body {
           ,maxmin: true
           ,area: [width_, '100%'] 
           ,btn: ['确定', '取消']
+          ,yes: function(index, layero){
+            //点击确认触发 iframe 内容中的按钮提交
+            var submit = layero.find('iframe').contents().find("#layuiadmin-app-form-submit");
+            submit.click();
+          }
+        });
+      }
+
+      if (event === 'statistics') {
+        var url = "{{ url('user/account/statistics') }}" + "?id=" + data.id;
+        // console.log(data);
+        // return false;
+        layer.open({
+          type: 2
+          ,title: '抽卡统计'
+          ,content: url
+          ,maxmin: true
+          ,area: [width_, '100%'] 
+          // ,btn: ['确定', '取消']
           ,yes: function(index, layero){
             //点击确认触发 iframe 内容中的按钮提交
             var submit = layero.find('iframe').contents().find("#layuiadmin-app-form-submit");
@@ -420,6 +440,19 @@ body {
 
 
   <script>
+
+  function isMobileDevice() {
+      return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  if (isMobileDevice()) {
+    var width_ = '100%';
+      // console.log("这是移动设备");
+  } else {
+    var width_ = '60%';
+      // console.log("这是PC设备");
+  }
+
   layui.use(function(){
     var element = layui.element;
     
@@ -535,7 +568,7 @@ body {
         ,title: '添加账号'
         ,content: "{{ url('user/account/add') }}"
         ,maxmin: true
-        ,area: ['100%', '100%']
+        ,area: [width_, '95%']
         // ,btn: ['确定', '取消']
         ,yes: function(index, layero){
           //点击确认触发 iframe 内容中的按钮提交

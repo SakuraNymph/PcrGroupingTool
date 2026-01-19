@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,42 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 
 use App\Model\App;
+
+
+if (!function_exists('buildWhere')) {
+    function buildWhere($model, array $conditions): Builder {
+        $query = $model::query();
+        foreach ($conditions as $cond) {
+            if (!isset($cond[0], $cond[1], $cond[2])) continue;
+
+            $field = $cond[0];
+            $operator = strtolower($cond[1]);
+            $value = $cond[2];
+
+            switch ($operator) {
+                case '=': case '>': case '<': case '>=': case '<=': case '!=':
+                    $query->where($field, $operator, $value);
+                    break;
+                case 'in':
+                    if (is_array($value)) $query->whereIn($field, $value);
+                    break;
+                case 'not in':
+                    if (is_array($value)) $query->whereNotIn($field, $value);
+                    break;
+                case 'or':
+                    $query->where(function($q) use ($value) {
+                        foreach ($value as $orCond) {
+                            if (!isset($orCond[0], $orCond[1], $orCond[2])) continue;
+                            $q->orWhere($orCond[0], $orCond[1], $orCond[2]);
+                        }
+                    });
+                    break;
+            }
+        }
+        return $query;
+    }
+}
+
 
 
 if (!function_exists('customDump')) {
