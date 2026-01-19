@@ -1,6 +1,12 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
 ## 演示地址 http://pcr.saololi.asia/
 
+### 2026.01.19
+v0.8 新增抽卡统计功能
+
+### 2025.11.19
+v0.7 后台新增作品上传功能
+
 ### 2025.09.14
 v0.6 新增首日跨阶段满补分刀套餐
 
