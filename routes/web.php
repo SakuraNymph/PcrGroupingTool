@@ -104,9 +104,6 @@ Route::middleware('auth:admin')->group(function () {
 	// 导出作业文件接口
 	Route::get('admin/team/export', [App\Http\Controllers\AdminTeamController::class, 'export']);
 
-	// 测试
-	Route::get('test99', [App\Http\Controllers\AdminTeamController::class, 'test']);
-	
 
 	// 角色列表页面
 	Route::get('list', [App\Http\Controllers\RoleController::class, 'list']);
