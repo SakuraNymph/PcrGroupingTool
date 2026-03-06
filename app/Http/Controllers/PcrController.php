@@ -358,7 +358,7 @@ class PcrController extends Controller
     {
         $locations = ['welcome', 'list', 'post', 'team', 'group'];
         dump($locations);
-
+        dd(666);
     }
 
     private function makeHtml($uid)
