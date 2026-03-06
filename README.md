@@ -1,5 +1,5 @@
 ![](https://img.shields.io/badge/php_version-8.3-blue)![](https://img.shields.io/badge/MySQL->=5.7-blue)![](https://img.shields.io/badge/Nginx->=1.15-blue)
-## 演示地址 http://pcr.saololi.asia/
+## 演示地址 http://pcr.saololi.fun/
 ### 2026.03.07
 v0.9 新增新手引导功能  并重构部分前端页面
 
