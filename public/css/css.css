@@ -1,0 +1,43 @@
+  #bossList {
+    display: flex;
+    flex-direction: column;
+  }
+
+.image-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.row-label {
+  writing-mode: vertical-rl;
+  text-align: center;
+  margin-right: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #999; /* 设置浅灰色 */
+}
+
+.image-checkbox {
+  position: relative;
+  margin-right: 5px;  /* 缩小图片间隔 */
+  cursor: pointer;
+}
+
+.image-checkbox img {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.image-checkbox.selected img {
+  opacity: 1;
+}
+
+.image-checkbox.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 20px;
+  color: green;
+}

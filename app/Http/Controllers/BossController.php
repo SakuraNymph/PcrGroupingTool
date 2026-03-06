@@ -22,4 +22,13 @@ class BossController extends Controller
         $bossList = $bossList ? $bossList->toArray() : [];
         return json_encode(['status' => 1, 'data' => $bossList]);
     }
+
+    public function index(Request $request)
+    {
+        if ($request->method() == 'POST') {
+            
+        }
+
+        return view('admin.boss.index');
+    }
 }
