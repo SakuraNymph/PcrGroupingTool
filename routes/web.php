@@ -92,11 +92,20 @@ Route::middleware('auth:admin')->group(function () {
 	Route::get('admin/team/list', [App\Http\Controllers\AdminTeamController::class, 'list']);
 	Route::get('admin/team/get_public_teams', [App\Http\Controllers\AdminTeamController::class, 'getPublicTeams']);
 	Route::post('admin/team/open', [App\Http\Controllers\AdminTeamController::class, 'open']);
-	Route::post('admin/team/delete', [App\Http\Controllers\AdminTeamController::class, 'delete']);
+	Route::post('admin/team/status', [App\Http\Controllers\AdminTeamController::class, 'status']);
 	Route::get('admin/team/add', [App\Http\Controllers\AdminTeamController::class, 'add']);
 	Route::post('admin/team/add', [App\Http\Controllers\AdminTeamController::class, 'add']);
 	Route::get('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
 	Route::post('admin/team/edit', [App\Http\Controllers\AdminTeamController::class, 'edit']);
+
+	// 导入作业文件接口
+	Route::post('admin/team/upload', [App\Http\Controllers\AdminTeamController::class, 'upload']);
+
+	// 导出作业文件接口
+	Route::get('admin/team/export', [App\Http\Controllers\AdminTeamController::class, 'export']);
+
+	// 测试
+	Route::get('test99', [App\Http\Controllers\AdminTeamController::class, 'test']);
 	
 
 	// 角色列表页面
@@ -104,6 +113,12 @@ Route::middleware('auth:admin')->group(function () {
 
 	// 修改角色攻击类型接口
 	Route::post('change_atk_type', [App\Http\Controllers\RoleController::class, 'changeAtkType']);
+
+	// 修改角色元素属性接口
+	Route::post('change_element', [App\Http\Controllers\RoleController::class, 'changeElement']);
+
+	// 修改角色获取方式接口
+	Route::post('change_obtain', [App\Http\Controllers\RoleController::class, 'changeObtain']);
 
 	Route::get('admin/team/get_boss_images', [App\Http\Controllers\AdminTeamController::class, 'getBossImages']);
 	Route::get('admin/team/get_boss_list', [App\Http\Controllers\AdminTeamController::class, 'getBossList']);
@@ -158,11 +173,29 @@ Route::middleware('auth:user')->group(function () {
 	Route::get('user/account/coin', [App\Http\Controllers\AccountController::class, 'coin']);
 	Route::post('user/account/coin', [App\Http\Controllers\AccountController::class, 'coin']);
 
+	// 抽卡统计
+	Route::get('user/account/statistics', [App\Http\Controllers\AccountController::class, 'statistics']);
+	Route::post('user/account/statistics', [App\Http\Controllers\AccountController::class, 'statistics']);
+	
+
 	// 首日B+D套餐
 	Route::get('user/account/first_day', [App\Http\Controllers\AccountController::class, 'firstDay']);
 });
 
+// 游客D面分刀页面
+Route::get('user/visitor/team', [App\Http\Controllers\VisitorController::class, 'team']);
 
+// 游客D面分刀接口
+Route::get('user/visitor/get_team_groups', [App\Http\Controllers\VisitorController::class, 'getTeamGroups']);
+
+// 游客首日B+D套餐页面
+Route::get('user/visitor/group', [App\Http\Controllers\VisitorController::class, 'group']);
+
+// 游客首日B+D套餐接口
+Route::get('user/visitor/first_day', [App\Http\Controllers\VisitorController::class, 'firstDay']);
+
+// 修改新手指引开关状态接口
+Route::post('user/guide/update', [App\Http\Controllers\UserGuideConfigController::class, 'update']);
 
 
 // 注册页面
@@ -213,10 +246,17 @@ Route::get('get_public_teams', [App\Http\Controllers\TeamInfoController::class, 
 // 添加别人的作业
 Route::post('add_other_team', [App\Http\Controllers\TeamInfoController::class, 'addOtherTeam']);
 
-
 // 获取本月boss信息
 Route::get('get_this_month_boss_list', [App\Http\Controllers\BossController::class, 'getThisMonthBossList']);
 
+// B阶段排班表页面
+Route::get('b_stage_table', [App\Http\Controllers\TeamInfoController::class, 'bStageTable']);
+
+// B阶段排班表数据接口
+Route::get('b_stage_table_data', [App\Http\Controllers\TeamInfoController::class, 'bStageTableData']);
+
+// B阶段排班表修改接口
+Route::post('b_stage_table_data', [App\Http\Controllers\TeamInfoController::class, 'bStageTableData']);
 
 Route::get('get_data', [App\Http\Controllers\PcrController::class, 'getData']);
 

@@ -58,6 +58,13 @@ class RoleController extends Controller
                 $condition .= ' and name IS ' . $not . ' NULL';
             }
 
+            // 元素属性
+            if ($request->input('element') != '') {
+
+                $condition .= ' and element = :element';
+                $params['element'] = (int)$request->input('element');
+            }
+
             // 攻击类型
             if ($request->input('atk_type') != '') {
 
@@ -141,6 +148,42 @@ class RoleController extends Controller
             if ($role) {
                 $atkType = (int)$role->atk_type;
                 $role->atk_type = $atkType - 1;
+                $role->save();
+            }
+        }
+        $this->show_json();
+    }
+
+    public function changeElement(Request $request)
+    {
+        $id = (int)$request->input('id');
+        if ($id) {
+            // 修改单条数据状态
+            $role = Role::find($id);
+            if ($role) {
+                $element = (int)$role->element;
+                $role->element = $element + 1;
+                if ($role->element > 5) {
+                    $role->element = 1;
+                }
+                $role->save();
+            }
+        }
+        $this->show_json();
+    }
+
+    public function changeObtain(Request $request)
+    {
+        $id = (int)$request->input('id');
+        if ($id) {
+            // 修改单条数据状态
+            $role = Role::find($id);
+            if ($role) {
+                $obtain = (int)$role->obtain;
+                $role->obtain = $obtain + 1;
+                if ($role->obtain > 3) {
+                    $role->obtain = 1;
+                }
                 $role->save();
             }
         }

@@ -6,47 +6,52 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'name', 'email', 'password', 'ip', 'status', 'nickname', 'is_subscribe', 'sub_start', 'sub_end'
+        'name', 'email', 'password', 'ip', 'status', 'nickname', 
+        'is_subscribe', 'sub_start', 'sub_end'
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'password', 'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'sub_start'         => 'string',
+        'sub_end'           => 'string',
+        'is_subscribe'      => 'boolean',
+        'status'            => 'integer',
     ];
 
-    public static function getUserInfoByIp($ip)
+    /**
+     * 获取或创建基于 IP 的临时访客用户，并返回 ID
+     */
+    public static function getOrCreateGuestIdByIp(string $ip): ?int
     {
-        $user_info = self::where('ip', $ip)->first();
-        if (!$user_info) {
-            self::create(['ip' => $ip, 'status' => 0, 'is_subscribe' => 0, 'sub_start' => '00:00:00', 'sub_end' => '23:59:59']);
-            $user_info = self::where('ip', $ip)->first();
+        if (empty($ip) || in_array($ip, ['127.0.0.1', '::1'])) {
+            return null;
         }
-        $user_info = $user_info ? $user_info->toArray() : [];
-        self::where('ip', $ip)->update(['updated_at' => timeToStr()]);
-        return $user_info;
+
+        $cacheKey = 'guest_user:' . md5($ip);
+
+        return Cache::remember($cacheKey, now()->addHours(12), function () use ($ip) {
+            $user = self::firstOrCreate(
+                ['ip' => $ip],
+                [
+                    'status'       => 0,
+                    'name'         => '访客_' . substr(md5($ip), 0, 8),
+                    'nickname'     => null,
+                    'is_subscribe' => 0,
+                    'sub_start'    => '00:00:00',    // 或 '09:00' 作为默认提醒开始时间
+                    'sub_end'      => '23:59:59',    // 或 '18:00'
+                ]
+            );
+
+            return $user->id;
+        });
     }
 }

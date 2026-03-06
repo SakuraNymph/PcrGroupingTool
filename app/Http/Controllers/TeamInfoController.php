@@ -140,17 +140,29 @@ class TeamInfoController extends Controller
 
 
             // boss
-            $boss_num   = (int)$params['boss'];
+            $boss   = (int)$params['boss'];
             // 备注
-            $remark     = htmlspecialchars($params['remark']) ?? '';
+            $remark = htmlspecialchars($params['remark']) ?? '';
             // 伤害
-            $score      = (int)$params['score'];
+            $damage  = (int)$params['score'];
             // 是否自动
-            $auto       = (int)$params['auto'];
+            $auto   = (int)$params['auto'];
             // 是否公开
-            $open       = 0;
+            $open   = 0;
             // 阵容
-            $teams      = $params['teams'];
+            $teams  = $params['teams'];
+
+            $rolesMap = DB::table('roles')->select(DB::raw('CASE WHEN is_6 = 1 THEN role_id_6 ELSE role_id_3 END as image, atk_type, id, search_area_width, nickname'))->get()->keyBy('id');
+
+            // 按 search_area_width 降序排序 A
+            usort($teams, function($itemX, $itemY) use ($rolesMap) {
+                $roleIdX = $itemX['role_id'];
+                $roleIdY = $itemY['role_id'];
+                $widthX = $rolesMap[$roleIdX]->search_area_width ?? 0;  // ID 不存在用 0
+                $widthY = $rolesMap[$roleIdY]->search_area_width ?? 0;
+                return $widthY <=> $widthX;  // 降序：y 的宽度 > x 的宽度，返回负数（y 先）
+                // 或者用: return $widthX - $widthY;  // 简单减法，也实现降序（但数字大时注意溢出）
+            });
 
             $uid = Auth::guard('user')->id();
             if (!$uid) {
@@ -162,7 +174,7 @@ class TeamInfoController extends Controller
 
             $role_ids = array_column($teams, 'role_id');
             // 验证角色参数
-            $count = Role::whereIn('role_id', $role_ids)->count();
+            $count = Role::whereIn('id', $role_ids)->count();
             if ($count != 5) {
                 show_json(0, '角色参数错误');
             }
@@ -171,38 +183,28 @@ class TeamInfoController extends Controller
 
             $atk_value = 0;
             foreach ($teams as $key => $value) {
-                $atk_type = (int)DB::table('roles')->where('role_id', $value['role_id'])->value('atk_type');
+                $atk_type = (int)DB::table('roles')->where('id', $value['role_id'])->value('atk_type');
                 $atk_value += $atk_type;
             }
 
             $insert_teams = [
-                'uid'        => $uid,
-                'boss'       => $boss_num,
-                'score'      => $score,
-                'open'       => $open,
-                'auto'       => $auto,
-                'status'     => 1,
                 'stage'      => 5,
+                'uid'        => $uid,
+                'boss'       => $boss,
+                'damage'     => $damage,
+                'team'       => json_encode($teams),
+                'open'       => $open,
+                'status'     => 1,
+                'auto'       => $auto,
                 'atk_value'  => $atk_value,
                 'remark'     => $remark,
                 'created_at' => timeToStr()
             ];
-            $team_id = DB::table('user_teams')->insertGetId($insert_teams);
+            $team_id = DB::table('teams')->insertGetId($insert_teams);
             if (!$team_id) {
                 show_json(0, 'Error');
             }
 
-            $insert_team_roles = [];
-            foreach ($teams as $key => $value) {
-                $insert_team_roles[] = ['team_id' => $team_id, 'role_id' => $value['role_id'], 'status' => $value['status']];
-            }
-
-            $res = DB::table('team_roles')->insert($insert_team_roles);
-
-            if (!$res) {
-                DB::table('teams')->delete($team_id);
-                show_json(0, 'Error');
-            }
             $cacheKey = 'group' . $uid;
             Cache::put($cacheKey, []);
             show_json(1);
@@ -228,9 +230,6 @@ class TeamInfoController extends Controller
             $ids_json = json_encode($role_ids_use);
             $author_id     = (int)$data->author_id;
         }
-
-
-
 
         if (!empty($params['id'])) {
             $ids_not_in = array_diff($ids_not_in, $role_ids_use);
@@ -276,7 +275,7 @@ class TeamInfoController extends Controller
         $roles = Cache::get('roles');
         if (empty($roles)) {
             // 角色
-            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `role_id`, `position`, `name` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('role_id')->get();
+            $roles = DB::table('roles')->select(DB::raw(' CASE WHEN `is_6` = 1 THEN `role_id_6` ELSE `role_id_3` END as `image_id`, `id`, `position`, `name` '))->where('status', 1)->orderBy('use_times', 'DESC')->orderBy('id')->get();
             $roles = $roles ? $roles->toArray() : [];
             Cache::put('roles', $roles, 7200);
         }
@@ -290,10 +289,10 @@ class TeamInfoController extends Controller
         $rolesMap = [];
         foreach ($roles as $key => $value) {
             $switch = 0;
-            if (in_array($value->role_id, $teamRoles)) {
+            if (in_array($value->id, $teamRoles)) {
                 $switch = 1;
             }
-            $rolesMap[$value->position][] = ['role_id' => $value->role_id, 'image_id' => $value->image_id, 'switch' => $switch, 'name' => $value->name];
+            $rolesMap[$value->position][] = ['role_id' => $value->id, 'image_id' => $value->image_id, 'switch' => $switch, 'name' => $value->name];
         }
         return json_encode(['status' => 1, 'result' => $rolesMap]);
     }
@@ -334,14 +333,48 @@ class TeamInfoController extends Controller
         $where = $type ? ['otid' => $id] : ['id' => $id];
         $where['uid'] = $uid;
 
-        $teamInfo = UserTeam::where($where)->first();
+        $teamInfo = Team::where($where)->first();
         if (!$teamInfo) {
             show_json(1);
         }
         $teamInfo->status = 0;
         $teamInfo->save();
-        TeamRole::where('team_id', $teamInfo->id)->delete();
         show_json(1);
+    }
+
+    public function bStageTable()
+    {
+        return view('b_stage_table');
+    }
+
+    public function bStageTableData(Request $request)
+    {
+        $uid = Auth::guard('user')->id();
+        if (!$uid) {
+            $uid = session('id');
+        }
+
+        $method = $request->method();
+        if ($method == 'POST') {
+            $validated = $request->validate([
+                'content' => 'required|array',
+                'content.*' => 'array',
+                'content.*.*' => 'nullable|string|max:32',
+            ]);
+
+            $content = $validated['content'];
+            $content = $content ? $content : array_fill(0, 6, array_fill(0, 5, null));
+
+            $ok = DB::table('b_stage_table')->where('uid', $uid)->value('content');
+            if ($ok) {
+                DB::table('b_stage_table')->where('uid', $uid)->update(['content' => $content]);
+            } else {
+                DB::table('b_stage_table')->insert(['uid' => $uid, 'content' => json_encode($content)]);
+            }
+            show_json(1);
+        }
+        $content = DB::table('b_stage_table')->where('uid', $uid)->value('content');
+        return ['content' => json_decode($content)];
     }
 
     /**
@@ -366,7 +399,7 @@ class TeamInfoController extends Controller
 
         if ($type == 1) { // 用户添加
             $where = ['uid' => $uid, 'status' => 1];
-            $model = \App\Models\UserTeam::class;
+            $model = \App\Models\Team::class;
         }
 
         if ($type == 2) { // 作业网数据 D面
@@ -404,7 +437,7 @@ class TeamInfoController extends Controller
     {
         if (is_array($role_ids)) {
             foreach ($role_ids as $key => $value) {
-                DB::table('roles')->where('role_id', (int)$value)->increment('use_times');
+                DB::table('roles')->where('id', (int)$value)->increment('use_times');
             }
         }
     }

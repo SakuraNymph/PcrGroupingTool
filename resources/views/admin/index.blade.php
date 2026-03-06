@@ -50,7 +50,7 @@
   
   <button onclick="location.href='{{ url("admin/team/get_boss_list") }}'">boss列表</button>
   <button onclick="location.href='{{ url("admin/team/list") }}'">作业列表</button>
-  <button onclick="location.href='{{ url("admin/team/get_boss_images") }}'">获取boss数据</button>
+  <button onclick="location.href='{{ url("/list") }}'">角色列表</button>
   <button onclick="location.href='{{ url("admin/guide/list") }}'">攻略列表</button>
   @if(!Auth::guard('admin')->check())
   <!-- <button onclick="location.href='{{ url("register") }}'">注册</button> -->

@@ -7,6 +7,7 @@ use App\Models\Account;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\TeamRole;
+use App\Models\UserGuideConfig;
 use App\Services\TeamInfoService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Validator;
 class AccountController extends Controller
 {
     public $ds_coin = [
+        181231,
         118631,
         129731,
         129631,
@@ -45,6 +47,9 @@ class AccountController extends Controller
         107031,
         106131,
         107131, // 克总
+        127931,
+        127531,
+        127231,
         127131,
         126931,
         126631,
@@ -107,13 +112,14 @@ class AccountController extends Controller
     
     public function list(Request $request)
     {
+        $uid = Auth::guard('user')->id();
         if ($request->method() == 'POST') {
-            $uid = Auth::guard('user')->id();
             $data = Account::where('uid', $uid)->where('status', 1)->get();
             $data = $data ? $data->toArray() : [];
             return json_encode(['code' => 0, 'data' => $data]);
         }
-        return view('user.account.list');
+        $switch = UserGuideConfig::getUserGuideConfig($uid, 'list');
+        return view('user.account.list', ['switch' => $switch]);
     }
 
     public function add(Request $request)
@@ -238,10 +244,10 @@ class AccountController extends Controller
             show_json(1); 
         }
 
-        $data = Account::find($id);
-        $data = $data ? $data->toArray() : [];
-        // dd($data);
-        return view('user.account.post', ['id' => $id, 'data' => $data]);
+        $data   = Account::find($id);
+        $data   = $data ? $data->toArray() : [];
+        $switch = UserGuideConfig::getUserGuideConfig($uid, 'post');
+        return view('user.account.post', ['id' => $id, 'data' => $data, 'switch' => $switch]);
     }
 
     public function delete(Request $request)
@@ -304,14 +310,20 @@ class AccountController extends Controller
 
     public function team(Request $request)
     {
-        $id = (int)$request->input('id');
-        return view('user.account.team', ['id' => $id, 'select_is_show' => true]);
+        $id     = (int)$request->input('id');
+        $uid    = $this->uid();
+        $switch = UserGuideConfig::getUserGuideConfig($uid, 'team');
+        $switch = false;
+        return view('user.account.team', ['id' => $id, 'select_is_show' => true, 'switch' => $switch]);
     }
 
     public function group(Request $request)
     {
-        $id = (int)$request->input('id');
-        return view('user.account.group', ['id' => $id, 'select_is_show' => true]);
+        $id     = (int)$request->input('id');
+        $uid    = $this->uid();
+        $switch = false;
+        $switch = UserGuideConfig::getUserGuideConfig($uid, 'group');
+        return view('user.account.group', ['id' => $id, 'select_is_show' => true, 'switch' => $switch]);
     }
 
     public function coin(Request $request)
@@ -391,9 +403,9 @@ class AccountController extends Controller
         $imageUrl = asset('images');
 
         $roles_2025 = Cache::get('roles_2025');
-        // $roles_2025 = 0;
+        $roles_2025 = 0;
         if (empty($roles_2025)) {
-            $roles_2025 = Role::select(['id', 'role_id_3', 'probability', 'name', DB::raw('null as count')])->whereYear('up_time', 2025)->where('obtain', 1)->orderBy('up_time')->get()
+            $roles_2025 = Role::select(['id', 'role_id_3', 'probability', 'name', DB::raw('null as count')])->whereYear('up_time', 2025)->where('obtain', 1)->orderBy('up_time')->orderBy('id')->get()
             ->map(function ($item) {
                 $item->img = asset('images') . "/{$item->role_id_3}.webp";
                 return $item;
@@ -402,9 +414,9 @@ class AccountController extends Controller
         }
 
         $roles_2026 = Cache::get('roles_2026');
-        // $roles_2026 = 0;
+        $roles_2026 = 0;
         if (empty($roles_2026)) {
-            $roles_2026 = Role::select(['id', 'role_id_3', 'probability', 'name', DB::raw('null as count')])->whereYear('up_time', 2026)->where('obtain', 1)->orderBy('up_time')->get()
+            $roles_2026 = Role::select(['id', 'role_id_3', 'probability', 'name', DB::raw('null as count')])->whereYear('up_time', 2026)->where('obtain', 1)->orderBy('up_time')->orderBy('id')->get()
             ->map(function ($item) {
                 $item->img = asset('images') . "/{$item->role_id_3}.webp";
                 return $item;

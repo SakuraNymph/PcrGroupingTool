@@ -257,12 +257,12 @@ layui.use(function(){
           } else {
             html += '<h4>自定义</h4>';
           }
-          html += '<h2>预估伤害：' + data[key].score + '</h2></div><div class="images">';
-          for (let k in data[key].team_roles) {
-            if (data[key].team_roles[k].status == 1) {
-              html += '<img src="./images/' + data[key].team_roles[k].image_id + '.webp" alt="图片">';
+          html += '<h2>预估伤害：' + data[key].damage + '</h2></div><div class="images">';
+          for (let k in data[key].team) {
+            if (data[key].team[k].status == 1) {
+              html += '<img src="./images/' + data[key].team[k].image_id + '.webp" alt="图片">';
             } else {
-              html += '<img src="./images/' + data[key].team_roles[k].image_id + '.webp" alt="图片" style="opacity:0.6;">';
+              html += '<img src="./images/' + data[key].team[k].image_id + '.webp" alt="图片" style="opacity:0.6;">';
             }
           }
           html += '<div class="buttons"><button type="button" class="layui-btn layui-bg-red" data-action="delete" id="' + data[key].id + '">删除</button></div></div><div class="description"><p>' + data[key].remark + '</p></div></div></fieldset>';

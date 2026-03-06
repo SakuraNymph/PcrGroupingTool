@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
-
 
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
-    public function __construct(Request $request)
+    /**
+     * 全项目统一获取当前用户 UID（登录用户优先 → 临时访客）
+     * 在任何继承本类的控制器中直接调用 $this->uid()
+     */
+    protected function uid(): ?int
     {
-        $user_ip = $request->ip();
-        if (empty($user_ip)) {
-            $user_ip = 0;
+        // 优先已登录用户
+        if ($uid = auth('user')->id()) {
+            return (int) $uid;
         }
-        $user_info = User::getUserInfoByIp($user_ip);
-        if ($user_info) {
-            if (!session('id')) {
-                session($user_info);
-            }
-        }
+
+        // 再取临时访客 ID
+        $guestId = session('guest_id');
+        return is_numeric($guestId) && $guestId > 0 ? (int) $guestId : null;
     }
 }

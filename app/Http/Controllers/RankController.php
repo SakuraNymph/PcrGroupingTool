@@ -168,7 +168,7 @@ class RankController extends Controller
         $switch       = 0;
 
         if ($id) {
-            $data           = DB::table('rank_infos')->where('id', $id)->where('author_id', $author_id)->first();
+            $data = DB::table('rank_infos')->where('id', $id)->where('author_id', $author_id)->first();
             if ($data) {
                 $data->role_ids = explode(',', $data->role_ids);
                 $role_ids_use   = $data->role_ids;

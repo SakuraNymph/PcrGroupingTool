@@ -22,6 +22,11 @@ class Team extends Model
         'updated_at',
     ];
 
+    protected $casts = [
+        'team' => 'array',
+        'link' => 'array',
+    ];
+
     public function teamRoles(): HasMany
     {
         return $this->hasMany(TeamRole::class);

@@ -209,11 +209,12 @@ layui.use(function(){
             
             // 遍历每个团队数据
             for (let key in data) {
-                html += '<fieldset class="layui-elem-field"><div class="container"><div class="header"><h1>E' + data[key].boss + '</h1>';
+                html += '<fieldset class="layui-elem-field"><div class="container"><div class="header"><h1>D' + data[key].boss + '</h1>';
                 
-                html += '<h4>' + data[key].sn + '</h4>';
+                let sn = data[key].sn ?? '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                html += '<h4>' + sn + '</h4>';
 
-                html += '<h2>预估伤害：' + data[key].score + '</h2>';
+                html += '<h2>预估伤害：' + data[key].damage + '</h2>';
                 
                 // 根据自动/手动设置显示相应的标签
                 if (data[key].auto == 1) {
@@ -226,11 +227,11 @@ layui.use(function(){
                 html += '</div><div class="images">';
 
                 // 遍历团队角色，生成图片
-                for (let k in data[key].team_roles) {
-                    html += '<img val=' + data[key].team_roles[k].role_id + ' src="./images/' + data[key].team_roles[k].image_id + '.webp" alt="图片" switch="1"';
+                for (let k in data[key].team) {
+                    html += '<img val=' + data[key].team[k].role_id + ' src="./images/' + data[key].team[k].image_id + '.webp" alt="图片" switch="1"';
                     
                     // 设置图片透明度，如果状态为 0
-                    if (data[key].team_roles[k].status == 0) {
+                    if (data[key].team[k].status == 0) {
                         html += 'style="opacity:0.6;"';
                     }
                     html += '>';

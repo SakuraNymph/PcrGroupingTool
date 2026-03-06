@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 业务逻辑区域
     const id = "{{ $id }}";
-    const baseUrl = (id == '0') ? "{{ url('get_team_groups') }}" : "{{ url('user/account/get_team_groups') }}";
+    const baseUrl = (id == '0') ? "{{ url('user/visitor/get_team_groups') }}" : "{{ url('user/visitor/get_team_groups') }}";
     const bossListUrl = "{{ url('get_this_month_boss_list') }}";
 
     let bossMap = { row1: 0, row2: 0, row3: 0 };
